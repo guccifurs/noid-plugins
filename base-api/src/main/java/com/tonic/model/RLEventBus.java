@@ -54,12 +54,21 @@ public class RLEventBus
     public void unregister(Object listener) {
         try
         {
-            Class<?> listenerClass = listener.getClass();
-            ReflectUtil.getMethod(eventBus, "unregister", new Class[]{listenerClass}, new Object[]{listener});
+            // Prefer Object.class signature
+            ReflectUtil.getMethod(eventBus, "unregister", new Class[]{Object.class}, new Object[]{listener});
         }
-        catch (Exception e)
+        catch (Exception e1)
         {
-            Logger.error("Failed to unregister listener: " + listener.getClass().getName());
+            try
+            {
+                // Fallback to concrete class signature used by some implementations
+                Class<?> listenerClass = listener.getClass();
+                ReflectUtil.getMethod(eventBus, "unregister", new Class[]{listenerClass}, new Object[]{listener});
+            }
+            catch (Exception ignored)
+            {
+                // Swallow to avoid noisy logs when listeners are already unregistered or not registered
+            }
         }
     }
 }

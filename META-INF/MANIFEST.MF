@@ -1,0 +1,8 @@
+Manifest-Version: 1.0
+Plugin-Version: 1.11.19.1
+Plugin-Id: helperbox_agility
+Plugin-Provider: Tonic
+Plugin-Name: HelperBox Agility
+Plugin-Description: Automated agility training using Draynor rooftop and
+  VitaLite pathing.
+

@@ -76,8 +76,6 @@ public class TrajectoryGenerator implements IMouseMovementGenerator
         RapidModeAdjustments adjustments = calculateRapidModeAdjustments(startTimeMs, distance);
 
         long timeDelta = lastMovementTimestamp == 0 ? -1 : (startTimeMs - lastMovementTimestamp);
-        System.out.println(String.format("RAPID MODE: distance=%.1f, timeDelta=%dms, adjustedMaxSamples=%d, adjustedJumpChance=%.2f",
-            distance, timeDelta, adjustments.adjustedMaxSamples, adjustments.adjustedInstantJumpChance));
 
         lastMovementTimestamp = startTimeMs;
 
@@ -96,7 +94,6 @@ public class TrajectoryGenerator implements IMouseMovementGenerator
 
         if (database.getTrajectoryCount() == 0)
         {
-            System.out.println("FALLBACK: Empty database - no trajectories available");
             return generateNaturalFallback(startX, startY, endX, endY, startTimeMs, distance);
         }
 
@@ -110,8 +107,6 @@ public class TrajectoryGenerator implements IMouseMovementGenerator
 
         if (similarForAnalysis.isEmpty())
         {
-            System.out.println(String.format("FALLBACK: No similar trajectories found for distance=%.1f, from (%d,%d) to (%d,%d)",
-                distance, startX, startY, endX, endY));
             return generateNaturalFallback(startX, startY, endX, endY, startTimeMs, distance);
         }
 
@@ -135,7 +130,6 @@ public class TrajectoryGenerator implements IMouseMovementGenerator
         int targetSampleCount = calculateTargetSampleCount(similarForAnalysis, distance, adjustments);
         finalPath = downsampleTrajectory(finalPath, startTimeMs, distance, targetSampleCount);
 
-        System.out.println(String.format("  → Final samples=%d", finalPath.size()));
 
         return new MouseMovementSequence(finalPath);
     }
@@ -203,7 +197,6 @@ public class TrajectoryGenerator implements IMouseMovementGenerator
             points.add(new MouseDataPoint(endX, endY, startTimeMs + 50));
         }
 
-        System.out.println(String.format("  → Instant jump samples=%d", points.size()));
 
         return new MouseMovementSequence(points);
     }

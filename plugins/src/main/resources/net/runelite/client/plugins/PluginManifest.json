@@ -1,0 +1,7 @@
+{
+  "name": "AttackTimer",
+  "version": "1.11.19.1",
+  "description": "Attack timer and AI prayers with simple combat logging",
+  "author": "Tonic",
+  "mainClass": "com.tonic.plugins.attacktimer.AttackTimerPlugin"
+}

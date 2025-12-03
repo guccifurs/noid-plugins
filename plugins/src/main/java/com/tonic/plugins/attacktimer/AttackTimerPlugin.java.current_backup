@@ -1,0 +1,1524 @@
+package com.tonic.plugins.attacktimer;
+
+import com.google.inject.Inject;
+import com.google.inject.Provides;
+import com.tonic.Logger;
+import com.tonic.Static;
+import com.tonic.api.game.SkillAPI;
+import com.tonic.api.game.VarAPI;
+import com.tonic.api.game.GameAPI;
+import com.tonic.api.entities.PlayerAPI;
+import com.tonic.queries.PlayerQuery;
+import com.tonic.queries.TileObjectQuery;
+import com.tonic.api.game.MovementAPI;
+// import com.tonic.util.MessageUtil; // Not available in current classpath
+import com.tonic.ui.VitaOverlay;
+import net.runelite.api.Actor;
+import net.runelite.api.Client;
+import net.runelite.api.HitsplatID;
+import net.runelite.api.Player;
+import net.runelite.api.Skill;
+import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.events.AnimationChanged;
+import net.runelite.api.events.ChatMessage;
+import net.runelite.api.events.GameTick;
+import net.runelite.api.events.HitsplatApplied;
+import net.runelite.api.events.MenuEntryAdded;
+import net.runelite.api.ChatMessageType;
+import net.runelite.api.MenuEntry;
+import net.runelite.api.MenuAction;
+import net.runelite.api.gameval.InterfaceID;
+import net.runelite.api.widgets.Widget;
+import net.runelite.client.config.ConfigManager;
+import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.plugins.Plugin;
+import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.ui.ClientToolbar;
+import net.runelite.client.ui.NavigationButton;
+import net.runelite.client.ui.overlay.OverlayManager;
+import net.runelite.client.util.ImageUtil;
+import com.tonic.plugins.attacktimer.ui.AttackTimerConfigPanel;
+import com.tonic.services.GameManager;
+import com.tonic.data.wrappers.PlayerEx;
+import com.tonic.data.wrappers.ItemEx;
+import com.tonic.api.widgets.InventoryAPI;
+import com.tonic.api.widgets.EquipmentAPI;
+import com.tonic.api.widgets.PrayerAPI;
+
+import java.awt.Color;
+import java.awt.image.BufferedImage;
+import java.util.List;
+import java.util.Random;
+
+@PluginDescriptor(
+    name = "Attack Timer",
+    description = "Tracks attack timers for various weapons (AGS, Claws, Tentacle, Magic, Range)",
+    tags = {"combat", "timer", "pvp", "attack", "nh"}
+)
+public class AttackTimerPlugin extends Plugin {
+    
+    // Injected dependencies
+    @Inject private AttackTimerConfig config;
+    @Inject private Client client;
+    @Inject private OverlayManager overlayManager;
+    @Inject private ClientToolbar clientToolbar;
+    
+    // UI components
+    private VitaOverlay infoOverlay;
+    private AttackTimerConfigPanel configPanel;
+    private NavigationButton navigationButton;
+    private static final BufferedImage pluginIcon = ImageUtil.loadImageResource(AttackTimerPlugin.class, "icon.png");
+    
+    // Service handlers
+    private DuelChallengeHandler duelChallengeHandler;
+    private PidDetector pidDetector;
+    private TargetSpec targetSpec;
+    private CombatLogger combatLogger;
+    
+    // Animation constants for different weapons
+    private static final int[] AGS_ANIMATIONS = {7644, 7045};
+    private static final int DRAGON_CLAWS_ATTACK = 7514;
+    private static final int DRAGON_CLAWS_SPEC = 7515;
+    private static final int TENTACLE_ATTACK = 1658;
+    private static final int TENTACLE_ATTACK_2 = 1659;
+    private static final int[] IGNORED_ANIMATIONS = {1156};
+    private static final int[] MAGIC_ANIMATIONS = {7855, 7854, 7856, 1978, 1979, 711, 1167, 1162, 428, 763, 7853};
+    private static final int[] STAFF_BASH_ANIMATIONS = {440};
+    private static final int[] CROSSBOW_ANIMATIONS = {9168, 9169, 9170, 7617, 7618, 9171, 9172, 4230, 7615, 7616};
+    private static final int[] BOW_ANIMATIONS = {426, 7618, 7619};
+    private static final int[] FREEZE_GFX_IDS = {369, 360, 361, 363, 358, 359, 143, 144};
+    
+    // Timer tracking
+    private AttackTimer playerTimer;
+    private AttackTimer opponentTimer;
+    private boolean playerTimerNewThisTick;
+    private boolean opponentTimerNewThisTick;
+    
+    // Freeze timer tracking  
+    private FreezeTimer playerFreezeTimer;
+    private FreezeTimer opponentFreezeTimer;
+    private WorldPoint playerLastPosition;
+    private WorldPoint opponentLastPosition;
+    private boolean playerFreezeNewThisTick;
+    private boolean opponentFreezeNewThisTick;
+    private int frozenSafetyCheckTicks;
+    
+    // Utility components
+    private final Random random = new Random();
+    private AIPrayersDisplayData aiPrayersData;
+    
+    // Target tracking  
+    private Player cachedTarget;
+    private String cachedTargetRSN;
+    
+    // AI Chatbot fields
+    private long lastAIChatResponseTime;
+    private String queuedAIChatResponse;
+    private long queuedAIChatResponseTime;
+    private long queuedAIChatResponseDelay;
+    private AIChatService aiChatService;
+    private String lastUsedApiKey;
+    private boolean aiSendingMessage;
+    
+    // Discord webhook services
+    private DiscordWebhookService discordWebhookService;
+    private String lastUsedWebhookUrl;
+    private DiscordWebhookService lobby578WebhookService;
+    private String lastUsedLobby578WebhookUrl;
+    
+    // Post-init AI message fields
+    private long initSequenceCompletionTime = -1;
+    private String queuedPostInitMessage;
+    private boolean shouldTrackDiscordMessages;
+    
+    // Flame message timer
+    private long lastTargetMessageTime = -1;
+    private long lastFlameMessageTime = -1;
+    
+    // Combat data
+    private CombatLogData cachedCombatData;
+    private int previousVarbit8121 = -1;
+    private int previousRegionId = -1;
+    private int tickCounter;
+    
+    // Arena exit flags
+    private boolean shouldClickPortal;
+    private boolean shouldClickGateway;
+    private int gatewayClickAttempts;
+    private static final int MAX_GATEWAY_CLICK_ATTEMPTS = 50;
+    
+    // Initialization sequence state
+    private boolean initSequenceActive;
+    private int initSequenceStep;
+    private int initSequenceTicks;
+    
+    // Combat automation state
+    private boolean waitingForCastAnimation;
+    private int waitingForCastAnimationTicks;
+    private boolean waitingForCastXP;
+    private int waitingForCastXPTicks;
+    private int lastMagicXP = -1;
+    private int lastEquipTick = -1;
+    
+    // Gear test state
+    private boolean gearTestExecuted;
+    private boolean previousGearTestState;
+    
+    // Tank toggle state
+    private boolean previousTankState;
+    
+    // Range attack state
+    private boolean waitingForCrossbowAnimation;
+    private int waitingForCrossbowTicks;
+    private boolean previousRangeAttackState;
+    
+    // Anglerfish tracking
+    private int ticksAtZero;
+    private boolean anglerEatenThisTick;
+    
+    // Spec dump mode tracking
+    private int ticksSinceGameStart = -1;
+    private boolean specDumpModeActive;
+    
+    // Damage tracking
+    private int totalDamageDealt;
+    
+    // Combat state handlers
+    private final CombatStateHandler targetFrozenWeUnfrozenOnPidHandler = new TargetFrozenWeUnfrozenOnPidHandler();
+    private final CombatStateHandler targetFrozenWeUnfrozenOffPidHandler = new TargetFrozenWeUnfrozenOffPidHandler();
+    private final CombatStateHandler weFrozenTargetUnfrozenOnPidHandler = new WeFrozenTargetUnfrozenOnPidHandler();
+    private final CombatStateHandler weFrozenTargetUnfrozenOffPidHandler = new WeFrozenTargetUnfrozenOffPidHandler();
+    private final CombatStateHandler bothFrozenHandler = new BothFrozenHandler();
+    private final BothUnfrozenHandler bothUnfrozenHandler = new BothUnfrozenHandler();
+    
+    // Inner classes
+    private static class AIPrayersDisplayData {
+        boolean targetFrozen;
+        boolean weFrozen;
+        boolean canMelee;
+        String modus;
+        double rangedPercent;
+        double meleePercent;
+        double magicPercent;
+    }
+    
+    private static class AttackTimer {
+        String weaponName;
+        int ticksRemaining;
+        int totalTicks;
+        
+        AttackTimer(String weaponName, int totalTicks) {
+            this.weaponName = weaponName;
+            this.totalTicks = totalTicks;
+            this.ticksRemaining = totalTicks;
+        }
+        
+        void tick() {
+            if (ticksRemaining > 0) {
+                ticksRemaining--;
+            }
+        }
+        
+        void addTicks(int ticks) {
+            ticksRemaining += ticks;
+        }
+        
+        boolean isExpired() {
+            return ticksRemaining <= 0;
+        }
+    }
+    
+    private enum FreezeState {
+        FROZEN,
+        IMMUNITY,
+        NONE
+    }
+    
+    private static class FreezeTimer {
+        FreezeState state;
+        int ticksRemaining;
+        
+        FreezeTimer() {
+            this.state = FreezeState.FROZEN;
+            this.ticksRemaining = 33;
+        }
+        
+        void tick() {
+            if (ticksRemaining > 0) {
+                ticksRemaining--;
+                if (state == FreezeState.FROZEN && ticksRemaining == 0) {
+                    state = FreezeState.IMMUNITY;
+                    ticksRemaining = 4;
+                } else if (state == FreezeState.IMMUNITY && ticksRemaining == 0) {
+                    state = FreezeState.NONE;
+                }
+            }
+        }
+        
+        boolean canBeFrozen() {
+            return state == FreezeState.NONE;
+        }
+        
+        boolean isActive() {
+            return state != FreezeState.NONE;
+        }
+        
+        void reset() {
+            state = FreezeState.NONE;
+            ticksRemaining = 0;
+        }
+    }
+    
+    @Provides
+    AttackTimerConfig provideConfig(ConfigManager configManager) {
+        return configManager.getConfig(AttackTimerConfig.class);
+    }
+    
+    @Override
+    protected void startUp() throws Exception {
+        updatePanel();
+        // combatLogger = new CombatLogger(); // Placeholder
+        
+        if (duelChallengeHandler != null) {
+            try {
+                Static.getRuneLite().getEventBus().unregister(duelChallengeHandler);
+            } catch (Exception e) {
+                // Ignore
+            }
+        }
+        
+        duelChallengeHandler = new DuelChallengeHandler(config);
+        Static.getRuneLite().getEventBus().register(duelChallengeHandler);
+        Logger.norm("[AttackTimer] DuelChallengeHandler registered to event bus");
+        
+        pidDetector = new PidDetector(config, client);
+        Static.getRuneLite().getEventBus().register(pidDetector);
+        Logger.norm("[AttackTimer] PidDetector registered to event bus");
+        
+        targetSpec = new TargetSpec(config, client);
+        Static.getRuneLite().getEventBus().register(targetSpec);
+        Logger.norm("[AttackTimer] TargetSpec registered to event bus");
+        
+        aiChatService = new AIChatService(config.aiChatbotApiKey(), config.aiChatbotModel(), 
+            config.aiChatbotProvider(), config.aiChatbotApiType(), config.aiChatbotSystemPrompt());
+        
+        if (config.discordWebhooks() && config.discordWebhookUrl() != null && !config.discordWebhookUrl().trim().isEmpty()) {
+            discordWebhookService = new DiscordWebhookService(config.discordWebhookUrl());
+            lastUsedWebhookUrl = config.discordWebhookUrl();
+        }
+        
+        if (config.lobby578Webhooks() && config.lobby578WebhookUrl() != null && !config.lobby578WebhookUrl().trim().isEmpty()) {
+            lobby578WebhookService = new DiscordWebhookService(config.lobby578WebhookUrl());
+            lastUsedLobby578WebhookUrl = config.lobby578WebhookUrl();
+        }
+        
+        configPanel = injector.getInstance(AttackTimerConfigPanel.class);
+        configPanel.setPlugin(this);
+        navigationButton = NavigationButton.builder()
+            .tooltip("Attack Timer")
+            .icon(pluginIcon)
+            .panel(configPanel)
+            .build();
+        clientToolbar.addNavigation(navigationButton);
+    }
+    
+    @Override
+    protected void shutDown() throws Exception {
+        if (duelChallengeHandler != null) {
+            try {
+                Static.getRuneLite().getEventBus().unregister(duelChallengeHandler);
+            } catch (Exception e) {
+                Logger.norm("[AttackTimer] Note: DuelChallengeHandler unregister: " + e.getMessage());
+            } finally {
+                duelChallengeHandler = null;
+            }
+        }
+        
+        if (pidDetector != null) {
+            try {
+                Static.getRuneLite().getEventBus().unregister(pidDetector);
+            } catch (Exception e) {
+                Logger.norm("[AttackTimer] Note: PidDetector unregister: " + e.getMessage());
+            } finally {
+                pidDetector = null;
+            }
+        }
+        
+        if (targetSpec != null) {
+            try {
+                Static.getRuneLite().getEventBus().unregister(targetSpec);
+            } catch (Exception e) {
+                Logger.norm("[AttackTimer] Note: TargetSpec unregister: " + e.getMessage());
+            } finally {
+                targetSpec = null;
+            }
+        }
+        
+        if (navigationButton != null) {
+            clientToolbar.removeNavigation(navigationButton);
+            navigationButton = null;
+        }
+        
+        playerTimer = null;
+        opponentTimer = null;
+        playerFreezeTimer = null;
+        opponentFreezeTimer = null;
+    }
+    
+    @Subscribe
+    public void onChatMessage(ChatMessage event) {
+        if (!config.enabled()) {
+            return;
+        }
+        
+        String message = event.getMessage();
+        if (message == null) {
+            return;
+        }
+        
+        if (config.aiChatbot() && aiChatService != null) {
+            handleAIChatbotMessage(event);
+        }
+        
+        int currentVarbit = VarAPI.getVar(8121);
+        
+        if (config.discordWebhooks() && shouldTrackDiscordMessages && currentVarbit == 1) {
+            handleDiscordWebhook(event, message);
+        }
+        
+        if (config.lobby578Webhooks() && currentVarbit != 1) {
+            handleLobby578Webhook(event, message);
+        }
+        
+        handleInitializationSequence(event, message, currentVarbit);
+        handleArenaExitConditions(message);
+    }
+    
+    @Subscribe
+    public void onGameTick(GameTick event) {
+        if (!config.enabled()) {
+            return;
+        }
+        
+        tickCounter++;
+        
+        // Get local player
+        Player localPlayer = Static.invoke(client::getLocalPlayer);
+        if (localPlayer == null) {
+            return;
+        }
+        
+        // Track varbit 8121 - this is the PRIMARY indicator for combat-ready state
+        int currentVarbit = VarAPI.getVar(8121);
+        
+        // Update timers
+        if (playerTimer != null) {
+            playerTimer.tick();
+            if (playerTimer.isExpired()) {
+                playerTimer = null;
+            }
+        }
+        
+        if (opponentTimer != null) {
+            opponentTimer.tick();
+            if (opponentTimer.isExpired()) {
+                opponentTimer = null;
+            }
+        }
+        
+        if (playerFreezeTimer != null) {
+            playerFreezeTimer.tick();
+            if (!playerFreezeTimer.isActive()) {
+                playerFreezeTimer = null;
+            }
+        }
+        
+        if (opponentFreezeTimer != null) {
+            opponentFreezeTimer.tick();
+            if (!opponentFreezeTimer.isActive()) {
+                opponentFreezeTimer = null;
+            }
+        }
+        
+        // Handle duel challenge automation - ONLY when NOT in combat (varbit != 1)
+        // This is for the lobby area (region 13363 or 13362)
+        if (duelChallengeHandler != null && config.autoAcceptDuel() && currentVarbit != 1) {
+            duelChallengeHandler.sendChallengeBackIfNeeded();
+            duelChallengeHandler.handleDuelConfirmation();
+        }
+        
+        // PID Status Management: Reset when varbit changes (entering/exiting combat state)
+        if (currentVarbit != previousVarbit8121) {
+            // Reset damage counter on any varbit change
+            totalDamageDealt = 0;
+            
+            if (pidDetector != null) {
+                pidDetector.onVarbit8121Changed(currentVarbit);
+            }
+            if (targetSpec != null) {
+                targetSpec.onVarbit8121Changed(currentVarbit);
+            }
+            
+            if (config.debug()) {
+                Logger.norm("[AttackTimer] Varbit 8121 changed: " + previousVarbit8121 + " -> " + currentVarbit);
+            }
+        }
+        
+        // TARGET TRACKING SYSTEM
+        // Clear target when varbit transitions to 1 (entering combat state)
+        if (currentVarbit == 1 && previousVarbit8121 != 1) {
+            cachedTarget = null;
+            cachedTargetRSN = null;
+            cachedCombatData = null;
+            
+            // Clear PID detector target
+            if (pidDetector != null) {
+                pidDetector.setCurrentTarget(null);
+            }
+            
+            // Clear target spec tracker target
+            if (targetSpec != null) {
+                targetSpec.setCurrentTarget(null);
+            }
+            
+            if (config.debug()) {
+                Logger.norm("[Target System] Varbit 8121 became 1 - cleared target (entering combat)");
+            }
+        }
+        
+        // If varbit 8121 == 1, set closest player as target
+        if (currentVarbit == 1) {
+            // If we don't have a target, find and set it
+            if (cachedTarget == null) {
+                Player nearestPlayer = findNearestPlayer(localPlayer);
+                
+                if (nearestPlayer != null) {
+                    String targetName = Static.invoke(nearestPlayer::getName);
+                    
+                    if (targetName != null && !targetName.isEmpty()) {
+                        cachedTarget = nearestPlayer;
+                        cachedTargetRSN = targetName;
+                        
+                        // Update PID detector with new target
+                        if (pidDetector != null) {
+                            pidDetector.setCurrentTarget(cachedTarget);
+                            if (config.debug()) {
+                                Logger.norm("[PID Detector] Updated target: " + cachedTargetRSN);
+                            }
+                        }
+                        
+                        // Update target spec tracker with new target
+                        if (targetSpec != null) {
+                            targetSpec.setCurrentTarget(cachedTarget);
+                        }
+                        
+                        if (config.debug()) {
+                            Logger.norm("[Target System] Set target: " + cachedTargetRSN);
+                        }
+                        updatePanel();
+                    }
+                }
+            }
+            
+            // If we have a target name but Player object is null, try to refresh it
+            // Only check every 10 ticks to reduce performance impact
+            if (cachedTarget == null && cachedTargetRSN != null && tickCounter % 10 == 0) {
+                try {
+                    // Try to find the player by name to refresh the Player object
+                    List<PlayerEx> players = GameManager.playerList();
+                    for (PlayerEx pEx : players) {
+                        if (pEx == null) continue;
+                        Player p = pEx.getPlayer();
+                        if (p != null && p != localPlayer) {
+                            String pName = Static.invoke(p::getName);
+                            if (pName != null && pName.equals(cachedTargetRSN)) {
+                                cachedTarget = p;
+                                
+                                // Update PID detector with refreshed target
+                                if (pidDetector != null) {
+                                    pidDetector.setCurrentTarget(cachedTarget);
+                                }
+                                
+                                // Update target spec tracker with refreshed target
+                                if (targetSpec != null) {
+                                    targetSpec.setCurrentTarget(cachedTarget);
+                                }
+                                
+                                if (config.debug()) {
+                                    Logger.norm("[Target System] Refreshed target Player object for: " + cachedTargetRSN);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    // Ignore - player object may be invalid
+                }
+            }
+            
+            // Handle target spec tracking when in combat
+            if (targetSpec != null) {
+                targetSpec.onGameTick();
+            }
+        }
+        // If varbit is not 1, clear target (we're in lobby)
+        else {
+            if (cachedTarget != null || cachedTargetRSN != null) {
+                cachedTarget = null;
+                cachedTargetRSN = null;
+                cachedCombatData = null;
+                
+                // Clear PID detector target
+                if (pidDetector != null) {
+                    pidDetector.setCurrentTarget(null);
+                }
+                
+                // Clear target spec tracker target
+                if (targetSpec != null) {
+                    targetSpec.setCurrentTarget(null);
+                }
+                
+                if (config.debug()) {
+                    Logger.norm("[Target System] Varbit 8121 != 1 - Cleared target (in lobby)");
+                }
+                updatePanel();
+            }
+        }
+        
+        // Store current varbit value for next tick
+        previousVarbit8121 = currentVarbit;
+        
+        // Initialization Sequence Handler (when varbit == 1 and sequence is active)
+        if (initSequenceActive && currentVarbit == 1) {
+            handleInitSequenceOnTick(localPlayer);
+        }
+        
+        // Reset initialization sequence if varbit != 1
+        if (initSequenceActive && currentVarbit != 1) {
+            if (config.combatAutomationLogging()) {
+                Logger.norm("[Init Sequence] Varbit != 1, resetting sequence");
+            }
+            initSequenceActive = false;
+            initSequenceStep = 0;
+            initSequenceTicks = 0;
+        }
+        
+        handleCombatAutomation();
+        handleQueuedAIMessages();
+        updatePanel();
+    }
+    
+    /**
+     * Handle initialization sequence steps on each game tick
+     */
+    private void handleInitSequenceOnTick(Player localPlayer) {
+        if (localPlayer == null) return;
+        
+        initSequenceTicks++;
+        
+        switch (initSequenceStep) {
+            case 1: // Step 1: Put on tank gear, eat anglerfish (same tick)
+                equipGearFromConfig(config.tankGear());
+                // Eat anglerfish
+                List<ItemEx> inventoryItems = InventoryAPI.getItems();
+                for (ItemEx item : inventoryItems) {
+                    if (item != null && item.getName() != null && item.getName().toLowerCase().contains("angler")) {
+                        String[] actions = item.getActions();
+                        for (String action : actions) {
+                            if (action != null && action.equalsIgnoreCase("Eat")) {
+                                InventoryAPI.interact(item, "Eat");
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+                if (config.combatAutomationLogging()) {
+                    Logger.norm("[Init Sequence] Step 1: Put on tank gear and ate anglerfish");
+                }
+                initSequenceStep = 2;
+                initSequenceTicks = 0;
+                break;
+                
+            case 2: // Step 2: Next tick - drink bastion potion
+                List<ItemEx> bastionItems = InventoryAPI.getItems();
+                boolean bastionDrank = false;
+                for (ItemEx item : bastionItems) {
+                    if (item != null && item.getName() != null) {
+                        String itemName = item.getName();
+                        if (itemName.toLowerCase().startsWith("bastion")) {
+                            String[] actions = item.getActions();
+                            for (String action : actions) {
+                                if (action != null && action.equalsIgnoreCase("Drink")) {
+                                    InventoryAPI.interact(item, "Drink");
+                                    bastionDrank = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (bastionDrank) break;
+                    }
+                }
+                if (bastionDrank) {
+                    if (config.combatAutomationLogging()) {
+                        Logger.norm("[Init Sequence] Step 2: Drank bastion potion");
+                    }
+                    initSequenceStep = 3;
+                    initSequenceTicks = 0;
+                }
+                break;
+                
+            case 3: // Step 3: Walk to random tile up to 6 tiles
+                WorldPoint playerPos = localPlayer.getWorldLocation();
+                int offsetX = random.nextInt(13) - 6; // -6 to +6
+                int offsetY = random.nextInt(13) - 6; // -6 to +6
+                WorldPoint randomTile = new WorldPoint(
+                    playerPos.getX() + offsetX,
+                    playerPos.getY() + offsetY,
+                    playerPos.getPlane()
+                );
+                MovementAPI.walkToWorldPoint(randomTile);
+                if (config.combatAutomationLogging()) {
+                    Logger.norm("[Init Sequence] Step 3: Walking to random tile (" + randomTile.getX() + ", " + randomTile.getY() + ")");
+                }
+                initSequenceStep = 4;
+                initSequenceTicks = 0;
+                break;
+                
+            case 4: // Step 4: Wait 4 ticks
+                if (initSequenceTicks >= 4) {
+                    if (config.combatAutomationLogging()) {
+                        Logger.norm("[Init Sequence] Step 4: Waited 4 ticks");
+                    }
+                    initSequenceStep = 5;
+                    initSequenceTicks = 0;
+                }
+                break;
+                
+            case 5: // Step 5: Drink super combat potion
+                List<ItemEx> superCombatItems = InventoryAPI.getItems();
+                boolean superCombatDrank = false;
+                for (ItemEx item : superCombatItems) {
+                    if (item != null && item.getName() != null) {
+                        String itemName = item.getName();
+                        if (itemName.toLowerCase().startsWith("super combat")) {
+                            String[] actions = item.getActions();
+                            for (String action : actions) {
+                                if (action != null && action.equalsIgnoreCase("Drink")) {
+                                    InventoryAPI.interact(item, "Drink");
+                                    superCombatDrank = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (superCombatDrank) break;
+                    }
+                }
+                if (superCombatDrank) {
+                    if (config.combatAutomationLogging()) {
+                        Logger.norm("[Init Sequence] Step 5: Drank super combat potion");
+                    }
+                    initSequenceStep = 6;
+                    initSequenceTicks = 0;
+                }
+                break;
+                
+            case 6: // Step 6: Wait 1 tick
+                if (initSequenceTicks >= 1) {
+                    if (config.combatAutomationLogging()) {
+                        Logger.norm("[Init Sequence] Step 6: Waited 1 tick");
+                    }
+                    initSequenceStep = 7;
+                    initSequenceTicks = 0;
+                }
+                break;
+                
+            case 7: // Step 7: Walk to random tile up to 6 tiles again
+                WorldPoint playerPos2 = localPlayer.getWorldLocation();
+                int offsetX2 = random.nextInt(13) - 6;
+                int offsetY2 = random.nextInt(13) - 6;
+                WorldPoint randomTile2 = new WorldPoint(
+                    playerPos2.getX() + offsetX2,
+                    playerPos2.getY() + offsetY2,
+                    playerPos2.getPlane()
+                );
+                MovementAPI.walkToWorldPoint(randomTile2);
+                if (config.combatAutomationLogging()) {
+                    Logger.norm("[Init Sequence] Step 7: Walking to random tile (" + randomTile2.getX() + ", " + randomTile2.getY() + ")");
+                }
+                initSequenceStep = 8; // Wait for "1" message
+                initSequenceTicks = 0;
+                break;
+                
+            case 8: // Step 8: Wait for "1" message (handled in onChatMessage)
+                // Do nothing here - waiting for chat message
+                break;
+        }
+    }
+    
+    /**
+     * Find the nearest player (for combat automation and target tracking)
+     */
+    private Player findNearestPlayer(Player localPlayer) {
+        if (localPlayer == null) {
+            return null;
+        }
+        
+        WorldPoint playerPos = Static.invoke(localPlayer::getWorldLocation);
+        if (playerPos == null) {
+            return null;
+        }
+        
+        Player nearestPlayer = null;
+        int nearestDistance = Integer.MAX_VALUE;
+        
+        // Find nearest player (excluding local player)
+        List<PlayerEx> players = GameManager.playerList();
+        for (PlayerEx pEx : players) {
+            if (pEx == null) continue;
+            Player p = pEx.getPlayer();
+            if (p == null || p == localPlayer) {
+                continue;
+            }
+            
+            WorldPoint pPos = Static.invoke(p::getWorldLocation);
+            if (pPos == null) {
+                continue;
+            }
+            
+            int distance = Math.abs(playerPos.getX() - pPos.getX()) + Math.abs(playerPos.getY() - pPos.getY());
+            
+            if (distance < nearestDistance) {
+                nearestDistance = distance;
+                nearestPlayer = p;
+            }
+        }
+        
+        return nearestPlayer;
+    }
+    
+    @Subscribe
+    public void onAnimationChanged(AnimationChanged event) {
+        if (!config.enabled()) {
+            return;
+        }
+        
+        Actor actor = event.getActor();
+        if (!(actor instanceof Player)) {
+            return;
+        }
+        
+        Player player = (Player) actor;
+        int animationId = player.getAnimation();
+        
+        if (animationId == -1) {
+            return;
+        }
+        
+        handleAttackAnimation(player, animationId);
+    }
+    
+    @Subscribe
+    public void onHitsplatApplied(HitsplatApplied event) {
+        if (!config.enabled()) {
+            return;
+        }
+        
+        Actor actor = event.getActor();
+        if (!(actor instanceof Player)) {
+            return;
+        }
+        
+        Player player = (Player) actor;
+        int damage = event.getHitsplat().getAmount();
+        
+        if (damage > 0) {
+            totalDamageDealt += damage;
+        }
+    }
+    
+    private void updatePanel() {
+        if (configPanel != null) {
+            // configPanel.updateInfo(getDisplayData()); // Method needs to be implemented in UI
+        }
+    }
+    
+    private String getDisplayData() {
+        StringBuilder sb = new StringBuilder();
+        
+        if (playerTimer != null) {
+            sb.append("Player Timer: ").append(playerTimer.ticksRemaining).append(" ticks\n");
+        }
+        
+        if (opponentTimer != null) {
+            sb.append("Opponent Timer: ").append(opponentTimer.ticksRemaining).append(" ticks\n");
+        }
+        
+        if (playerFreezeTimer != null) {
+            sb.append("Player Freeze: ").append(playerFreezeTimer.ticksRemaining).append(" ticks\n");
+        }
+        
+        if (opponentFreezeTimer != null) {
+            sb.append("Opponent Freeze: ").append(opponentFreezeTimer.ticksRemaining).append(" ticks\n");
+        }
+        
+        return sb.toString();
+    }
+    
+    private void handleAIChatbotMessage(ChatMessage event) {
+        if (aiSendingMessage) {
+            return;
+        }
+        
+        if (event.getType() != ChatMessageType.PUBLICCHAT && event.getType() != ChatMessageType.MODCHAT) {
+            return;
+        }
+        
+        String senderName = event.getName();
+        String message = event.getMessage();
+        if (senderName == null || message == null || message.trim().isEmpty()) {
+            return;
+        }
+        
+        Player localPlayer = Static.invoke(client::getLocalPlayer);
+        if (localPlayer != null) {
+            String localPlayerName = Static.invoke(localPlayer::getName);
+            if (localPlayerName != null && localPlayerName.equals(senderName)) {
+                return;
+            }
+        }
+        
+        int currentVarbit = VarAPI.getVar(8121);
+        long currentTime = System.currentTimeMillis();
+        
+        if (currentVarbit != 1) {
+            if (currentTime - lastAIChatResponseTime < 30000) {
+                return;
+            }
+            lastAIChatResponseTime = currentTime;
+        } else {
+            if (cachedTargetRSN == null || !senderName.equals(cachedTargetRSN)) {
+                return;
+            }
+            if (currentTime - lastAIChatResponseTime < 5000) {
+                return;
+            }
+        }
+        
+        queueAIChatResponse(message, senderName, currentVarbit);
+    }
+    
+    private void queueAIChatResponse(String message, String senderName, int varbitValue) {
+        new Thread(() -> {
+            try {
+                AIChatService service = getAIChatService();
+                if (service != null) {
+                    String prompt = varbitValue == 1 ? message : getRandomLobbyPrompt();
+                    String aiResponse = service.getResponse(prompt);
+                    if (aiResponse != null && !aiResponse.trim().isEmpty()) {
+                        queuedAIChatResponse = aiResponse;
+                        queuedAIChatResponseTime = System.currentTimeMillis();
+                        queuedAIChatResponseDelay = 2000 + (long)(Math.random() * 3000);
+                        lastAIChatResponseTime = System.currentTimeMillis();
+                    }
+                }
+            } catch (Exception e) {
+                Logger.norm("[AI Chatbot] Error getting AI response: " + e.getMessage());
+            }
+        }).start();
+    }
+    
+    private AIChatService getAIChatService() {
+        String currentApiKey = config.aiChatbotApiKey();
+        if (aiChatService == null || (currentApiKey != null && !currentApiKey.equals(lastUsedApiKey))) {
+            aiChatService = new AIChatService(currentApiKey, config.aiChatbotModel(), 
+                config.aiChatbotProvider(), config.aiChatbotApiType(), config.aiChatbotSystemPrompt());
+            lastUsedApiKey = currentApiKey;
+        }
+        return aiChatService;
+    }
+    
+    private String getRandomLobbyPrompt() {
+        String[] prompts = {
+            "I m the fastest nher I click faster than 1013, I own people on osrs, 1 ticks is all you. you are insanely fast. Every message u send is between 1 and 8 words max.",
+            "You are a humble gamer and you are looking for NH fights. ask around if anyone want to nh with you. You are ready for some hands. asak them to Pk or challenge for a 1v1 Every message u send is between 1 and 8 words max.",
+            "u are a rage baiter. u try to get the worst out of people Every message u send is between 1 and 8 words max.",
+            "Everyone is a noob but u dont care u are glad to help them. Every message u send is between 1 and 8 words max.",
+            "u are annoyed with the bots and ai, everything around u is a bot its frustrating. Every message u send is between 1 and 8 words max."
+        };
+        return prompts[random.nextInt(prompts.length)];
+    }
+    
+    private void handleDiscordWebhook(ChatMessage event, String message) {
+        String currentWebhookUrl = config.discordWebhookUrl();
+        if (currentWebhookUrl != null && !currentWebhookUrl.trim().isEmpty() && 
+            (discordWebhookService == null || !currentWebhookUrl.equals(lastUsedWebhookUrl))) {
+            discordWebhookService = new DiscordWebhookService(currentWebhookUrl);
+            lastUsedWebhookUrl = currentWebhookUrl;
+        }
+        
+        if (discordWebhookService != null) {
+            String senderName = event.getName();
+            if (isRelevantPlayer(senderName)) {
+                boolean isLocal = isLocalPlayer(senderName);
+                new Thread(() -> {
+                    discordWebhookService.sendChatMessage(senderName, message, isLocal);
+                }).start();
+            }
+        }
+    }
+    
+    private void handleLobby578Webhook(ChatMessage event, String message) {
+        String currentLobbyWebhookUrl = config.lobby578WebhookUrl();
+        if (currentLobbyWebhookUrl != null && !currentLobbyWebhookUrl.trim().isEmpty() && 
+            (lobby578WebhookService == null || !currentLobbyWebhookUrl.equals(lastUsedLobby578WebhookUrl))) {
+            lobby578WebhookService = new DiscordWebhookService(currentLobbyWebhookUrl);
+            lastUsedLobby578WebhookUrl = currentLobbyWebhookUrl;
+        }
+        
+        if (lobby578WebhookService != null && 
+            (event.getType() == ChatMessageType.PUBLICCHAT || event.getType() == ChatMessageType.MODCHAT)) {
+            String senderName = event.getName();
+            if (senderName != null) {
+                boolean isLocal = isLocalPlayer(senderName);
+                new Thread(() -> {
+                    lobby578WebhookService.sendChatMessage(senderName, message, isLocal);
+                }).start();
+            }
+        }
+    }
+    
+    private boolean isRelevantPlayer(String senderName) {
+        if (senderName == null) return false;
+        return isLocalPlayer(senderName) || isTargetPlayer(senderName);
+    }
+    
+    private boolean isLocalPlayer(String senderName) {
+        Player localPlayer = Static.invoke(client::getLocalPlayer);
+        if (localPlayer != null) {
+            String localPlayerName = Static.invoke(localPlayer::getName);
+            return localPlayerName != null && localPlayerName.equals(senderName);
+        }
+        return false;
+    }
+    
+    private boolean isTargetPlayer(String senderName) {
+        if (cachedTargetRSN != null && cachedTargetRSN.equals(senderName)) {
+            return true;
+        }
+        
+        Player localPlayer = Static.invoke(client::getLocalPlayer);
+        if (localPlayer != null) {
+            Actor interacting = Static.invoke(localPlayer::getInteracting);
+            if (interacting instanceof Player) {
+                String targetName = Static.invoke(interacting::getName);
+                return targetName != null && targetName.equals(senderName);
+            }
+        }
+        return false;
+    }
+    
+    private void handleInitializationSequence(ChatMessage event, String message, int currentVarbit) {
+        String lowerMessage = message.toLowerCase();
+        
+        if (currentVarbit == 1 && !initSequenceActive) {
+            if (message.trim().equals("10") || message.matches(".*\\b10\\b.*")) {
+                if (isValidInitMessage(event)) {
+                    initSequenceActive = true;
+                    initSequenceStep = 1;
+                    initSequenceTicks = 0;
+                    if (config.combatAutomationLogging()) {
+                        Logger.norm("[Init Sequence] Detected '10' message - starting initialization sequence");
+                    }
+                }
+            }
+        }
+        
+        if (initSequenceActive) {
+            if (isValidInitMessage(event)) {
+                handleInitSequenceCommands(message, lowerMessage);
+            }
+        }
+    }
+    
+    private boolean isValidInitMessage(ChatMessage event) {
+        String senderName = event.getName();
+        if (isLocalPlayer(senderName)) {
+            return true;
+        }
+        return event.getType() == ChatMessageType.GAMEMESSAGE;
+    }
+    
+    private void handleInitSequenceCommands(String message, String lowerMessage) {
+        Player localPlayer = Static.invoke(client::getLocalPlayer);
+        if (localPlayer == null) return;
+        
+        if (message.trim().equals("3") || message.matches(".*\\b3\\b.*") ||
+            message.trim().equals("2") || message.matches(".*\\b2\\b.*")) {
+            moveRandomTiles(localPlayer, 6);
+        } else if (initSequenceStep == 8 && (message.trim().equals("1") || message.matches(".*\\b1\\b.*"))) {
+            completeInitSequence();
+        }
+    }
+    
+    private void moveRandomTiles(Player player, int maxDistance) {
+        WorldPoint playerPos = player.getWorldLocation();
+        int offsetX = random.nextInt(maxDistance * 2 + 1) - maxDistance;
+        int offsetY = random.nextInt(maxDistance * 2 + 1) - maxDistance;
+        WorldPoint randomTile = new WorldPoint(playerPos.getX() + offsetX,
+            playerPos.getY() + offsetY, playerPos.getPlane());
+        MovementAPI.walkToWorldPoint(randomTile);
+    }
+    
+    private void completeInitSequence() {
+        initSequenceActive = false;
+        initSequenceStep = 0;
+        initSequenceTicks = 0;
+        ticksSinceGameStart = 0;
+        specDumpModeActive = false;
+        shouldTrackDiscordMessages = true;
+        
+        if (config.aiChatbot() && aiChatService != null) {
+            initSequenceCompletionTime = System.currentTimeMillis();
+            queuedPostInitMessage = null;
+            generatePostInitMessage();
+        }
+        
+        if (config.combatAutomationLogging()) {
+            Logger.norm("[Init Sequence] Detected '1' message - ending initialization sequence");
+        }
+    }
+    
+    private void generatePostInitMessage() {
+        new Thread(() -> {
+            try {
+                AIChatService service = getAIChatService();
+                if (service != null) {
+                    String prompt = "Send a short flame insult about PK'ing in Old School RuneScape. Examples: 'shit pker', 'ur so bad', 'you suck kid', 'get rekt noob'. Keep it up to 6 words maximum, under 50 characters, and be trash talk.";
+                    String aiMessage = service.getResponse(prompt);
+                    if (aiMessage != null && !aiMessage.trim().isEmpty()) {
+                        queuedPostInitMessage = aiMessage;
+                        if (config.debug()) {
+                            Logger.norm("[AI Chatbot] Generated post-init message: " + aiMessage);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                Logger.norm("[AI Chatbot] Error generating post-init message: " + e.getMessage());
+            }
+        }).start();
+    }
+    
+    private void handleArenaExitConditions(String message) {
+        String lowerMessage = message.toLowerCase();
+        
+        if (lowerMessage.contains("oh dear") && lowerMessage.contains("you are dead")) {
+            shouldClickPortal = true;
+            shouldClickGateway = false;
+            Logger.norm("[Arena Exit] Detected 'Oh dear, you are dead!' - will click Portal until varbit != 1");
+        } else if (lowerMessage.contains("unranked duel wins")) {
+            shouldClickGateway = true;
+            shouldClickPortal = false;
+            gatewayClickAttempts = 0;
+            clearTargetData();
+            Logger.norm("[Arena Exit] Detected 'Unranked duel wins' - cleared target, will click Gateway until varbit != 1");
+        } else if (lowerMessage.contains("you can leave")) {
+            shouldClickGateway = true;
+            shouldClickPortal = false;
+            gatewayClickAttempts = 0;
+            clearTargetData();
+            Logger.norm("[Arena Exit] Detected 'You can leave' - cleared target, will click Gateway until varbit != 1");
+        }
+    }
+    
+    private void clearTargetData() {
+        cachedTarget = null;
+        cachedTargetRSN = null;
+        cachedCombatData = null;
+    }
+    
+    private void handleCombatAutomation() {
+        // Placeholder for combat automation logic
+        // This would contain the complex combat state handling from the original
+    }
+    
+    private void handleQueuedAIMessages() {
+        long currentTime = System.currentTimeMillis();
+        
+        if (queuedAIChatResponse != null && currentTime - queuedAIChatResponseTime >= queuedAIChatResponseDelay) {
+            sendAIMessage(queuedAIChatResponse);
+            queuedAIChatResponse = null;
+        }
+        
+        if (queuedPostInitMessage != null && initSequenceCompletionTime != -1 && 
+            currentTime - initSequenceCompletionTime >= 10000) {
+            sendAIMessage(queuedPostInitMessage);
+            queuedPostInitMessage = null;
+        }
+    }
+    
+    private void sendAIMessage(String message) {
+        aiSendingMessage = true;
+        try {
+            // MessageUtil.sendPublicChatMessage(message); // Placeholder - implement message sending
+            if (config.debug()) {
+                Logger.norm("[AI] Would send message: " + message);
+            }
+        } finally {
+            aiSendingMessage = false;
+        }
+    }
+    
+    private void handleAttackAnimation(Player player, int animationId) {
+        if (isIgnoredAnimation(animationId)) {
+            return;
+        }
+        
+        String weaponType = detectAttackType(animationId);
+        if (weaponType != null) {
+            int ticks = getWeaponTicks(animationId);
+            
+            Player localPlayer = Static.invoke(client::getLocalPlayer);
+            if (localPlayer != null && player.equals(localPlayer)) {
+                playerTimer = new AttackTimer(weaponType, ticks);
+                playerTimerNewThisTick = true;
+            } else {
+                opponentTimer = new AttackTimer(weaponType, ticks);
+                opponentTimerNewThisTick = true;
+            }
+        }
+    }
+    
+    private boolean isIgnoredAnimation(int animationId) {
+        for (int ignored : IGNORED_ANIMATIONS) {
+            if (ignored == animationId) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    private String detectAttackType(int animationId) {
+        for (int agsAnim : AGS_ANIMATIONS) {
+            if (agsAnim == animationId) return "AGS";
+        }
+        if (animationId == DRAGON_CLAWS_ATTACK || animationId == DRAGON_CLAWS_SPEC) return "Claws";
+        if (animationId == TENTACLE_ATTACK || animationId == TENTACLE_ATTACK_2) return "Tentacle";
+        
+        for (int magicAnim : MAGIC_ANIMATIONS) {
+            if (magicAnim == animationId) return "Magic";
+        }
+        for (int staffAnim : STAFF_BASH_ANIMATIONS) {
+            if (staffAnim == animationId) return "Staff";
+        }
+        for (int crossbowAnim : CROSSBOW_ANIMATIONS) {
+            if (crossbowAnim == animationId) return "Crossbow";
+        }
+        for (int bowAnim : BOW_ANIMATIONS) {
+            if (bowAnim == animationId) return "Bow";
+        }
+        
+        return null;
+    }
+    
+    private int getWeaponTicks(int animationId) {
+        for (int agsAnim : AGS_ANIMATIONS) {
+            if (agsAnim == animationId) return 6;
+        }
+        if (animationId == DRAGON_CLAWS_ATTACK || animationId == DRAGON_CLAWS_SPEC) return 4;
+        if (animationId == TENTACLE_ATTACK || animationId == TENTACLE_ATTACK_2) return 4;
+        
+        for (int magicAnim : MAGIC_ANIMATIONS) {
+            if (magicAnim == animationId) return 5;
+        }
+        for (int staffAnim : STAFF_BASH_ANIMATIONS) {
+            if (staffAnim == animationId) return 4;
+        }
+        for (int crossbowAnim : CROSSBOW_ANIMATIONS) {
+            if (crossbowAnim == animationId) return 5;
+        }
+        for (int bowAnim : BOW_ANIMATIONS) {
+            if (bowAnim == animationId) return 4;
+        }
+        
+        return 4; // Default
+    }
+    
+    /**
+     * Update the UI panel with current combat state information.
+     * Called by the config panel to refresh display data.
+     */
+    public void updatePanelInfo(AttackTimerConfigPanel panel) {
+        if (panel == null) {
+            return;
+        }
+        
+        // Update target name
+        if (cachedTarget != null && cachedTargetRSN != null) {
+            panel.setTargetName(cachedTargetRSN, Color.GREEN);
+        } else {
+            panel.setTargetName("None", Color.GRAY);
+        }
+        
+        // Update player timer
+        if (playerTimer != null && !playerTimer.isExpired()) {
+            int ticks = playerTimer.ticksRemaining;
+            Color timerColor = ticks <= 1 ? Color.GREEN : (ticks <= 3 ? Color.YELLOW : Color.RED);
+            panel.setPlayerTimer(ticks + " (" + playerTimer.weaponName + ")", timerColor);
+        } else {
+            panel.setPlayerTimer("Ready", Color.GREEN);
+        }
+        
+        // Update opponent timer
+        if (opponentTimer != null && !opponentTimer.isExpired()) {
+            int ticks = opponentTimer.ticksRemaining;
+            Color timerColor = ticks <= 1 ? Color.RED : (ticks <= 3 ? Color.YELLOW : Color.GREEN);
+            panel.setOpponentTimer(ticks + " (" + opponentTimer.weaponName + ")", timerColor);
+        } else {
+            panel.setOpponentTimer("Ready", Color.RED);
+        }
+        
+        // Update player freeze status
+        if (playerFreezeTimer != null && playerFreezeTimer.isActive()) {
+            String freezeText = playerFreezeTimer.state == FreezeState.FROZEN ? 
+                "Frozen: " + playerFreezeTimer.ticksRemaining : 
+                "Immune: " + playerFreezeTimer.ticksRemaining;
+            Color freezeColor = playerFreezeTimer.state == FreezeState.FROZEN ? Color.CYAN : Color.YELLOW;
+            panel.setPlayerFreeze(freezeText, freezeColor);
+        } else {
+            panel.setPlayerFreeze("None", Color.GRAY);
+        }
+        
+        // Update opponent freeze status
+        if (opponentFreezeTimer != null && opponentFreezeTimer.isActive()) {
+            String freezeText = opponentFreezeTimer.state == FreezeState.FROZEN ? 
+                "Frozen: " + opponentFreezeTimer.ticksRemaining : 
+                "Immune: " + opponentFreezeTimer.ticksRemaining;
+            Color freezeColor = opponentFreezeTimer.state == FreezeState.FROZEN ? Color.CYAN : Color.YELLOW;
+            panel.setOpponentFreeze(freezeText, freezeColor);
+        } else {
+            panel.setOpponentFreeze("None", Color.GRAY);
+        }
+        
+        // Update PID status
+        if (pidDetector != null) {
+            PidDetector.PidStatus pidStatus = pidDetector.getCurrentPidStatus();
+            switch (pidStatus) {
+                case ON_PID:
+                    panel.setPidStatus("ON PID", Color.GREEN);
+                    break;
+                case OFF_PID:
+                    panel.setPidStatus("OFF PID", Color.RED);
+                    break;
+                default:
+                    panel.setPidStatus("Unknown", Color.YELLOW);
+            }
+        } else {
+            panel.setPidStatus("Unknown", Color.GRAY);
+        }
+        
+        // Update target spec
+        if (targetSpec != null && cachedTarget != null) {
+            int specPercent = targetSpec.getTargetSpecPercent();
+            Color specColor = specPercent >= 50 ? Color.RED : (specPercent >= 25 ? Color.ORANGE : Color.GREEN);
+            panel.setTargetSpec(specPercent + "%", specColor);
+        } else {
+            panel.setTargetSpec("---", Color.GRAY);
+        }
+        
+        // Update distance
+        Player localPlayer = Static.invoke(client::getLocalPlayer);
+        if (localPlayer != null && cachedTarget != null) {
+            WorldPoint localPos = localPlayer.getWorldLocation();
+            WorldPoint targetPos = cachedTarget.getWorldLocation();
+            if (localPos != null && targetPos != null) {
+                int distance = localPos.distanceTo(targetPos);
+                panel.setDistance(distance);
+            } else {
+                panel.setDistance(-1);
+            }
+        } else {
+            panel.setDistance(-1);
+        }
+        
+        // Update AI prayers visibility and data
+        if (config.aiPrayers() && aiPrayersData != null) {
+            panel.setAIPrayersVisible(true);
+            panel.setTargetFrozen(aiPrayersData.targetFrozen);
+            panel.setWeFrozen(aiPrayersData.weFrozen);
+            panel.setCanMelee(aiPrayersData.canMelee);
+            panel.setModus(aiPrayersData.modus);
+            panel.setRangedPercent(aiPrayersData.rangedPercent);
+            panel.setMeleePercent(aiPrayersData.meleePercent);
+            panel.setMagicPercent(aiPrayersData.magicPercent);
+        } else {
+            panel.setAIPrayersVisible(false);
+        }
+        
+        // Update spec modus
+        if (ticksSinceGameStart >= 0) {
+            panel.setSpecModusTimer(ticksSinceGameStart);
+            panel.setSpecModusStatus(specDumpModeActive);
+        } else {
+            panel.setSpecModusTimer(-1);
+            panel.setSpecModusStatus(false);
+        }
+        
+        // Update total damage
+        panel.setTotalDamage(totalDamageDealt);
+    }
+    
+    /**
+     * Get the current target player.
+     */
+    public Player getCachedTarget() {
+        return cachedTarget;
+    }
+    
+    /**
+     * Get the current target's RSN.
+     */
+    public String getCachedTargetRSN() {
+        return cachedTargetRSN;
+    }
+    
+    /**
+     * Check if player is frozen.
+     */
+    public boolean isPlayerFrozen() {
+        return playerFreezeTimer != null && playerFreezeTimer.state == FreezeState.FROZEN;
+    }
+    
+    /**
+     * Check if opponent is frozen.
+     */
+    public boolean isOpponentFrozen() {
+        return opponentFreezeTimer != null && opponentFreezeTimer.state == FreezeState.FROZEN;
+    }
+    
+    /**
+     * Get player attack timer ticks remaining.
+     */
+    public int getPlayerTimerTicks() {
+        return playerTimer != null ? playerTimer.ticksRemaining : 0;
+    }
+    
+    /**
+     * Get opponent attack timer ticks remaining.
+     */
+    public int getOpponentTimerTicks() {
+        return opponentTimer != null ? opponentTimer.ticksRemaining : 0;
+    }
+    
+    /**
+     * Equip gear from config string (supports wildcards)
+     */
+    private void equipGearFromConfig(String gearConfig) {
+        if (gearConfig == null || gearConfig.trim().isEmpty()) {
+            if (config.debug()) {
+                Logger.norm("[Combat Automation] No gear config set");
+            }
+            return;
+        }
+        
+        // Parse gear config (handles both comma and newline separated)
+        String[] gearItems = parseGearConfig(gearConfig);
+        List<ItemEx> inventoryItems = InventoryAPI.getItems();
+        
+        if (config.debug()) {
+            Logger.norm("[Combat Automation] Trying to equip gear from config. Patterns: " + gearItems.length + ", Inventory items: " + inventoryItems.size());
+        }
+        
+        for (String gearPatternRaw : gearItems) {
+            final String gearPattern = gearPatternRaw.trim();
+            if (gearPattern.isEmpty()) {
+                continue;
+            }
+            
+            // Find matching item in inventory
+            for (ItemEx item : inventoryItems) {
+                if (item == null) {
+                    continue;
+                }
+                
+                String itemName = item.getName();
+                if (itemName == null || !matchesGearPattern(itemName, gearPattern)) {
+                    continue;
+                }
+                
+                // Check if already equipped
+                boolean alreadyEquipped = EquipmentAPI.isEquipped(i -> {
+                    if (i == null || i.getName() == null) return false;
+                    return matchesGearPattern(i.getName(), gearPattern);
+                });
+                
+                if (!alreadyEquipped) {
+                    // Try to equip using "Wear", "Equip", or "Wield" action
+                    boolean equipped = false;
+                    String[] actions = item.getActions();
+                    
+                    for (String actionName : new String[]{"Wear", "Equip", "Wield"}) {
+                        for (String action : actions) {
+                            if (action != null && action.equalsIgnoreCase(actionName)) {
+                                InventoryAPI.interact(item, actionName);
+                                equipped = true;
+                                if (config.debug()) {
+                                    Logger.norm("[Gear] Equipping: " + itemName + " (matched pattern: " + gearPattern + ")");
+                                }
+                                break;
+                            }
+                        }
+                        if (equipped) break;
+                    }
+                }
+                break; // Only equip first match per pattern
+            }
+        }
+    }
+    
+    /**
+     * Parse gear config string - handles both comma-separated and newline-separated items
+     */
+    private String[] parseGearConfig(String gearConfig) {
+        if (gearConfig == null || gearConfig.trim().isEmpty()) {
+            return new String[0];
+        }
+        
+        // First try splitting by newline
+        String[] byNewline = gearConfig.split("[\r\n]+");
+        if (byNewline.length > 1) {
+            return byNewline;
+        }
+        
+        // No newlines - split by comma
+        return gearConfig.split(",");
+    }
+    
+    /**
+     * Check if an item name matches a gear pattern (supports wildcards)
+     */
+    public static boolean matchesGearPattern(String itemName, String pattern) {
+        if (itemName == null || pattern == null || itemName.isEmpty() || pattern.isEmpty()) {
+            return false;
+        }
+        
+        // Convert pattern to regex (escape special chars, replace * with .*)
+        String regex = pattern
+            .replace("\\", "\\\\")
+            .replace(".", "\\.")
+            .replace("^", "\\^")
+            .replace("$", "\\$")
+            .replace("[", "\\[")
+            .replace("]", "\\]")
+            .replace("(", "\\(")
+            .replace(")", "\\)")
+            .replace("{", "\\{")
+            .replace("}", "\\}")
+            .replace("+", "\\+")
+            .replace("?", "\\?")
+            .replace("|", "\\|")
+            .replace("*", ".*");
+        
+        return itemName.matches("(?i)" + regex); // Case-insensitive match
+    }
+}

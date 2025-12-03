@@ -254,23 +254,28 @@ public class GameManager extends Overlay {
             tileItemCache.clear();
             tileItemCache.addAll(Static.invoke(() -> {
                 ArrayList<TileItemEx> temp = new ArrayList<>();
-                WorldView wv = client.getTopLevelWorldView();
-                Tile[][] value = wv.getScene().getTiles()[wv.getPlane()];
-                for(int x = 0; x < value.length; x++)
+                for(int id : worldViews)
                 {
-                    for (int y = 0; y < value[x].length; y++)
+                    WorldView wv = client.getWorldView(id);
+                    if(wv == null)
+                        continue;
+                    Tile[][] value = wv.getScene().getTiles()[wv.getPlane()];
+                    for(int x = 0; x < value.length; x++)
                     {
-                        Tile tile = value[x][y];
-                        if (tile != null) {
-                            if(tile.getGroundItems() != null)
-                            {
-                                for(TileItem tileItem : tile.getGroundItems())
+                        for (int y = 0; y < value[x].length; y++)
+                        {
+                            Tile tile = value[x][y];
+                            if (tile != null) {
+                                if(tile.getGroundItems() != null)
                                 {
-                                    if(tileItem != null)
+                                    for(TileItem tileItem : tile.getGroundItems())
                                     {
-                                        WorldPoint wp = WorldPoint.fromScene(wv, x, y, wv.getPlane());
-                                        TileItemEx itemEx = new TileItemEx(tileItem, wp);
-                                        temp.add(itemEx);
+                                        if(tileItem != null)
+                                        {
+                                            WorldPoint wp = WorldPoint.fromScene(wv, x, y, wv.getPlane());
+                                            TileItemEx itemEx = new TileItemEx(tileItem, wp);
+                                            temp.add(itemEx);
+                                        }
                                     }
                                 }
                             }

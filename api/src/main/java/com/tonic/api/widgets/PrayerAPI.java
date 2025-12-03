@@ -167,7 +167,19 @@ public enum PrayerAPI {
     public boolean hasLevelFor()
     {
         Client client = Static.getClient();
-        return Static.invoke(() -> client.getRealSkillLevel(Skill.PRAYER) >= level);
+        return Static.invoke(() -> {
+            int playerLevel = client.getRealSkillLevel(Skill.PRAYER);
+            int boostedLevel = client.getBoostedSkillLevel(Skill.PRAYER);
+
+            // In LMS the boosted prayer level is set to 99 even if the real level is low.
+            // Mirror the PrayerGroup logic so that a boosted 99 counts for level checks.
+            if (boostedLevel == 99 && boostedLevel > playerLevel)
+            {
+                playerLevel = boostedLevel;
+            }
+
+            return playerLevel >= level;
+        });
     }
 
     /**

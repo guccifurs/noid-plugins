@@ -100,7 +100,8 @@ tasks.register<Copy>("copySubmoduleJar2") {
 
 tasks.processResources {
     dependsOn("copySubmoduleJar")
-    dependsOn("copySubmoduleJar2")
+    // Intentionally do not depend on copySubmoduleJar2 so plugins.jarData is not embedded;
+    // plugins are expected to be hot-loaded via external jars.
 }
 
 tasks {

@@ -20,7 +20,14 @@ public class Install {
     public void injectBuiltInPlugins(List<Class<?>> original) {
         try
         {
-            File builtIns = loadBuildIns().toFile();
+            java.nio.file.Path builtInsPath = loadBuildIns();
+            if (builtInsPath == null)
+            {
+                System.err.println("No built-in plugins found; skipping embedded plugins.");
+                return;
+            }
+
+            File builtIns = builtInsPath.toFile();
             PluginClassLoader classLoader = new PluginClassLoader(builtIns, Main.CLASSLOADER);
             original.addAll(classLoader.getPluginClasses());
         }
@@ -38,8 +45,8 @@ public class Install {
     private Path loadBuildIns() {
         File tempJar = getBuiltIns();
         if (tempJar == null) {
-            System.err.println("Failed to load built-in plugins.");
-            System.exit(1);
+            System.err.println("Failed to load built-in plugins; proceeding without embedded plugins.");
+            return null;
         }
         return tempJar.toPath();
     }

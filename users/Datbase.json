@@ -1,0 +1,1762 @@
+{
+  "settings": {
+    "bettingChannelId": "1440416961098944653",
+    "resultsChannelId": "1440416910197002321",
+    "logoUrl": "https://cdn.discordapp.com/attachments/1440412725657206938/1440427217392898159/ChatGPT_Image_18_nov_2025_19_57_56.png?ex=691e1de2&is=691ccc62&hm=58c97f5bf8128a505fabd001972a00b072c3c8359600206510807c438ee275ac&",
+    "adminRoleId": "1440421585281355896",
+    "panelMessageId": "1440690119605751901",
+    "panelThumbnailUrl": "https://media.discordapp.net/attachments/1417733236121014312/1440434783313199165/9k.png"
+  },
+  "users": {
+    "865164206408073236": {
+      "id": "865164206408073236",
+      "displayName": "thenoid2",
+      "linkedRsns": [
+        "RKniitruVyR"
+      ],
+      "balance": 50,
+      "wins": 0,
+      "losses": 0,
+      "betHistory": [
+        {
+          "displayName": null,
+          "roundId": "1763495682989",
+          "side": "red",
+          "amount": 50000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763495768792
+        },
+        {
+          "displayName": null,
+          "roundId": "1763497291780",
+          "side": "red",
+          "amount": 10000000,
+          "outcome": "win",
+          "payout": 19500000,
+          "ts": 1763497367382
+        },
+        {
+          "displayName": null,
+          "roundId": "1763499069789",
+          "side": "red",
+          "amount": 10000000,
+          "outcome": "win",
+          "payout": 19500000,
+          "ts": 1763499149590
+        },
+        {
+          "displayName": null,
+          "roundId": "1763499156207",
+          "side": "red",
+          "amount": 5000000,
+          "outcome": "win",
+          "payout": 9750000,
+          "ts": 1763499238989
+        },
+        {
+          "displayName": null,
+          "roundId": "1763500064695",
+          "side": "red",
+          "amount": 53000000,
+          "outcome": "win",
+          "payout": 103350000,
+          "ts": 1763500142700
+        },
+        {
+          "displayName": null,
+          "roundId": "1763502454758",
+          "side": "blue",
+          "amount": 50000000,
+          "outcome": "win",
+          "payout": 97500000,
+          "ts": 1763502532764
+        },
+        {
+          "displayName": null,
+          "roundId": "1763503647698",
+          "side": "blue",
+          "amount": 50000000,
+          "outcome": "win",
+          "payout": 97500000,
+          "ts": 1763503724502
+        },
+        {
+          "displayName": null,
+          "roundId": "1763504134342",
+          "side": "blue",
+          "amount": 50000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763504212669
+        },
+        {
+          "displayName": null,
+          "roundId": "1763504217762",
+          "side": "blue",
+          "amount": 50000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763504302961
+        },
+        {
+          "displayName": null,
+          "roundId": "1763504397181",
+          "side": "blue",
+          "amount": 50000000,
+          "outcome": "win",
+          "payout": 97500000,
+          "ts": 1763504479102
+        },
+        {
+          "displayName": null,
+          "roundId": "1763504570001",
+          "side": "blue",
+          "amount": 50000000,
+          "outcome": "win",
+          "payout": 97500000,
+          "ts": 1763504644387
+        },
+        {
+          "displayName": null,
+          "roundId": "1763504823240",
+          "side": "blue",
+          "amount": 50000000,
+          "outcome": "win",
+          "payout": 97500000,
+          "ts": 1763504900024
+        },
+        {
+          "displayName": null,
+          "roundId": "1763505071060",
+          "side": "blue",
+          "amount": 50000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763505146064
+        },
+        {
+          "displayName": null,
+          "roundId": "1763505237883",
+          "side": "blue",
+          "amount": 50000000,
+          "outcome": "win",
+          "payout": 97500000,
+          "ts": 1763505319483
+        },
+        {
+          "displayName": null,
+          "roundId": "1763505495900",
+          "side": "blue",
+          "amount": 50000000,
+          "outcome": "win",
+          "payout": 97500000,
+          "ts": 1763505574503
+        },
+        {
+          "displayName": null,
+          "roundId": "1763505831346",
+          "side": "red",
+          "amount": 250000000,
+          "outcome": "win",
+          "payout": 487500000,
+          "ts": 1763505905148
+        },
+        {
+          "displayName": null,
+          "roundId": "1763505911766",
+          "side": "red",
+          "amount": 250000000,
+          "outcome": "win",
+          "payout": 487500000,
+          "ts": 1763505989747
+        },
+        {
+          "displayName": null,
+          "roundId": "1763506074984",
+          "side": "red",
+          "amount": 250000000,
+          "outcome": "win",
+          "payout": 487500000,
+          "ts": 1763506155969
+        },
+        {
+          "displayName": null,
+          "roundId": "1763506755440",
+          "side": "red",
+          "amount": 999000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763506832241
+        },
+        {
+          "displayName": null,
+          "roundId": "1763507604526",
+          "side": "red",
+          "amount": 100000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763507686407
+        },
+        {
+          "displayName": null,
+          "roundId": "1763511521742",
+          "side": "red",
+          "amount": 100000000,
+          "outcome": "win",
+          "payout": 195000000,
+          "ts": 1763511594343
+        },
+        {
+          "displayName": null,
+          "roundId": "1763512522654",
+          "side": "red",
+          "amount": 100000000,
+          "outcome": "win",
+          "payout": 195000000,
+          "ts": 1763512603058
+        },
+        {
+          "displayName": null,
+          "roundId": "1763513111334",
+          "side": "red",
+          "amount": 100000000,
+          "outcome": "win",
+          "payout": 195000000,
+          "ts": 1763513199518
+        },
+        {
+          "displayName": null,
+          "roundId": "1763513206734",
+          "side": "red",
+          "amount": 100000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763513284117
+        },
+        {
+          "displayName": null,
+          "roundId": "1763515134145",
+          "side": "red",
+          "amount": 100000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763515217548
+        },
+        {
+          "displayName": null,
+          "roundId": "1763516813723",
+          "side": "red",
+          "amount": 400000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763516894726
+        },
+        {
+          "displayName": null,
+          "roundId": "1763549944507",
+          "side": "blue",
+          "amount": 86000000,
+          "outcome": "win",
+          "payout": 167700000,
+          "ts": 1763550023707
+        },
+        {
+          "displayName": null,
+          "roundId": "1763550439559",
+          "side": "red",
+          "amount": 170000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763550519346
+        },
+        {
+          "displayName": null,
+          "roundId": "1763552306968",
+          "side": "blue",
+          "amount": 1000000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763552386153
+        },
+        {
+          "displayName": null,
+          "roundId": "1763552392766",
+          "side": "blue",
+          "amount": 1000000000,
+          "outcome": "win",
+          "payout": 1950000000,
+          "ts": 1763552475550
+        },
+        {
+          "displayName": null,
+          "roundId": "1763552480987",
+          "side": "red",
+          "amount": 1000000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763552559570
+        },
+        {
+          "displayName": null,
+          "roundId": "1763552741408",
+          "side": "red",
+          "amount": 1000000000,
+          "outcome": "win",
+          "payout": 1950000000,
+          "ts": 1763552821782
+        },
+        {
+          "displayName": null,
+          "roundId": "1763554755800",
+          "side": "red",
+          "amount": 30000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763554825382
+        },
+        {
+          "displayName": null,
+          "roundId": "1763555757892",
+          "side": "red",
+          "amount": 30000000,
+          "outcome": "win",
+          "payout": 58500000,
+          "ts": 1763555831674
+        },
+        {
+          "displayName": null,
+          "roundId": "1763555838288",
+          "side": "red",
+          "amount": 30000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763555918092
+        },
+        {
+          "displayName": null,
+          "roundId": "1763556532584",
+          "side": "red",
+          "amount": 1000000000,
+          "outcome": "win",
+          "payout": 1950000000,
+          "ts": 1763556603361
+        },
+        {
+          "displayName": null,
+          "roundId": "1763556725196",
+          "side": "red",
+          "amount": 1000000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763556806780
+        },
+        {
+          "displayName": null,
+          "roundId": "1763556811596",
+          "side": "red",
+          "amount": 1000000000,
+          "outcome": "win",
+          "payout": 1950000000,
+          "ts": 1763556887798
+        },
+        {
+          "displayName": null,
+          "roundId": "1763556981432",
+          "side": "red",
+          "amount": 1000000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763557057616
+        },
+        {
+          "displayName": null,
+          "roundId": "1763557153651",
+          "side": "red",
+          "amount": 1000000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763557228038
+        },
+        {
+          "displayName": null,
+          "roundId": "1763571552772",
+          "side": "red",
+          "amount": 1000000000,
+          "outcome": "win",
+          "payout": 1950000000,
+          "ts": 1763571626558
+        },
+        {
+          "displayName": null,
+          "roundId": "1763571724391",
+          "side": "red",
+          "amount": 1000000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763571805976
+        },
+        {
+          "displayName": null,
+          "roundId": "1763574254841",
+          "side": "red",
+          "amount": 1000000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763574338223
+        },
+        {
+          "displayName": null,
+          "roundId": "1763575660780",
+          "side": "red",
+          "amount": 1000000000,
+          "outcome": "win",
+          "payout": 1950000000,
+          "ts": 1763575747777
+        },
+        {
+          "ts": 1763597679812
+        },
+        {
+          "ts": 1763597699011
+        },
+        {
+          "ts": 1763598575725
+        },
+        {
+          "ts": 1763598936994
+        },
+        {
+          "ts": 1763600168924
+        },
+        {
+          "ts": 1763600645985
+        },
+        {
+          "ts": 1763600851787
+        },
+        {
+          "ts": 1763601085226
+        }
+      ],
+      "deposits": [
+        {
+          "amount": 50000000,
+          "reason": "admin-add-gp",
+          "ts": 1763495641719
+        },
+        {
+          "amount": 50000000,
+          "reason": "admin-add-gp",
+          "ts": 1763496246546
+        },
+        {
+          "amount": 19500000,
+          "reason": "round-win",
+          "ts": 1763497367382
+        },
+        {
+          "amount": 30000000,
+          "reason": "bet-cancel",
+          "ts": 1763499089003
+        },
+        {
+          "amount": 19500000,
+          "reason": "round-win",
+          "ts": 1763499149590
+        },
+        {
+          "amount": 9750000,
+          "reason": "round-win",
+          "ts": 1763499238989
+        },
+        {
+          "amount": 103350000,
+          "reason": "round-win",
+          "ts": 1763500142699
+        },
+        {
+          "amount": 97500000,
+          "reason": "round-win",
+          "ts": 1763502532764
+        },
+        {
+          "amount": 50000000,
+          "reason": "bet-change-refund",
+          "ts": 1763503582931
+        },
+        {
+          "amount": 50000000,
+          "reason": "bet-cancel",
+          "ts": 1763503594096
+        },
+        {
+          "amount": 97500000,
+          "reason": "round-win",
+          "ts": 1763503724502
+        },
+        {
+          "amount": 97500000,
+          "reason": "round-win",
+          "ts": 1763504479102
+        },
+        {
+          "amount": 97500000,
+          "reason": "round-win",
+          "ts": 1763504644384
+        },
+        {
+          "amount": 97500000,
+          "reason": "round-win",
+          "ts": 1763504900023
+        },
+        {
+          "amount": 97500000,
+          "reason": "round-win",
+          "ts": 1763505319482
+        },
+        {
+          "amount": 97500000,
+          "reason": "round-win",
+          "ts": 1763505574503
+        },
+        {
+          "amount": 487500000,
+          "reason": "round-win",
+          "ts": 1763505905148
+        },
+        {
+          "amount": 487500000,
+          "reason": "round-win",
+          "ts": 1763505989747
+        },
+        {
+          "amount": 487500000,
+          "reason": "round-win",
+          "ts": 1763506155968
+        },
+        {
+          "amount": 500000000,
+          "reason": "admin-add-gp",
+          "ts": 1763507458551
+        },
+        {
+          "amount": 300000,
+          "reason": "rakeback-claim",
+          "ts": 1763507697899
+        },
+        {
+          "amount": 195000000,
+          "reason": "round-win",
+          "ts": 1763511594343
+        },
+        {
+          "amount": 195000000,
+          "reason": "round-win",
+          "ts": 1763512603058
+        },
+        {
+          "amount": 600000,
+          "reason": "rakeback-claim",
+          "ts": 1763513148574
+        },
+        {
+          "amount": 195000000,
+          "reason": "round-win",
+          "ts": 1763513199518
+        },
+        {
+          "amount": 167700000,
+          "reason": "round-win",
+          "ts": 1763550023706
+        },
+        {
+          "amount": 2358000,
+          "reason": "rakeback-claim",
+          "ts": 1763550143537
+        },
+        {
+          "amount": 5000000000,
+          "reason": "admin-add-gp",
+          "ts": 1763552311989
+        },
+        {
+          "amount": 1950000000,
+          "reason": "round-win",
+          "ts": 1763552475549
+        },
+        {
+          "amount": 1950000000,
+          "reason": "round-win",
+          "ts": 1763552821781
+        },
+        {
+          "amount": 12510000,
+          "reason": "rakeback-claim",
+          "ts": 1763553088718
+        },
+        {
+          "amount": 58500000,
+          "reason": "round-win",
+          "ts": 1763555831674
+        },
+        {
+          "amount": 1950000000,
+          "reason": "round-win",
+          "ts": 1763556603361
+        },
+        {
+          "amount": 1950000000,
+          "reason": "round-win",
+          "ts": 1763556887798
+        },
+        {
+          "amount": 1950000000,
+          "reason": "round-win",
+          "ts": 1763571626557
+        },
+        {
+          "amount": 1950000000,
+          "reason": "round-win",
+          "ts": 1763575747777
+        },
+        {
+          "amount": 1000000,
+          "reason": "gp-deposit",
+          "ts": 1763596721516
+        },
+        {
+          "amount": 1000000,
+          "reason": "adjust",
+          "ts": 1763597679811
+        },
+        {
+          "amount": 1000000,
+          "reason": "adjust",
+          "ts": 1763597699010
+        },
+        {
+          "amount": 500000,
+          "reason": "adjust",
+          "ts": 1763598575724
+        },
+        {
+          "amount": 1000000,
+          "reason": "adjust",
+          "ts": 1763598936993
+        },
+        {
+          "amount": 4000000,
+          "reason": "adjust",
+          "ts": 1763600168924
+        },
+        {
+          "amount": 2000000,
+          "reason": "adjust",
+          "ts": 1763600645984
+        },
+        {
+          "amount": 1000000,
+          "reason": "adjust",
+          "ts": 1763600851786
+        },
+        {
+          "amount": 4715050,
+          "reason": "adjust",
+          "ts": 1763601085225
+        }
+      ],
+      "withdrawals": [
+        {
+          "amount": 50000000,
+          "reason": "bet",
+          "ts": 1763495694345
+        },
+        {
+          "amount": 20000000,
+          "reason": "bet",
+          "ts": 1763496299201
+        },
+        {
+          "amount": 10000000,
+          "reason": "bet",
+          "ts": 1763497308227
+        },
+        {
+          "amount": 30000000,
+          "reason": "bet",
+          "ts": 1763499086235
+        },
+        {
+          "amount": 10000000,
+          "reason": "bet",
+          "ts": 1763499100318
+        },
+        {
+          "amount": 5000000,
+          "reason": "bet",
+          "ts": 1763499182544
+        },
+        {
+          "amount": 53000000,
+          "reason": "bet",
+          "ts": 1763500081751
+        },
+        {
+          "amount": 50000000,
+          "reason": "bet",
+          "ts": 1763502461420
+        },
+        {
+          "amount": 50000000,
+          "reason": "bet",
+          "ts": 1763503571581
+        },
+        {
+          "amount": 50000000,
+          "reason": "bet",
+          "ts": 1763503582931
+        },
+        {
+          "amount": 50000000,
+          "reason": "bet",
+          "ts": 1763503655783
+        },
+        {
+          "amount": 50000000,
+          "reason": "bet",
+          "ts": 1763504160981
+        },
+        {
+          "amount": 50000000,
+          "reason": "bet",
+          "ts": 1763504223049
+        },
+        {
+          "amount": 50000000,
+          "reason": "bet",
+          "ts": 1763504413201
+        },
+        {
+          "amount": 50000000,
+          "reason": "bet",
+          "ts": 1763504573730
+        },
+        {
+          "amount": 50000000,
+          "reason": "bet",
+          "ts": 1763504841034
+        },
+        {
+          "amount": 50000000,
+          "reason": "bet",
+          "ts": 1763505075486
+        },
+        {
+          "amount": 50000000,
+          "reason": "bet",
+          "ts": 1763505243310
+        },
+        {
+          "amount": 50000000,
+          "reason": "bet",
+          "ts": 1763505523423
+        },
+        {
+          "amount": 250000000,
+          "reason": "bet",
+          "ts": 1763505852405
+        },
+        {
+          "amount": 250000000,
+          "reason": "bet",
+          "ts": 1763505919378
+        },
+        {
+          "amount": 250000000,
+          "reason": "bet",
+          "ts": 1763506098269
+        },
+        {
+          "amount": 999000000,
+          "reason": "bet",
+          "ts": 1763506773649
+        },
+        {
+          "amount": 100000000,
+          "reason": "bet",
+          "ts": 1763507612582
+        },
+        {
+          "amount": 100000000,
+          "reason": "bet",
+          "ts": 1763511524455
+        },
+        {
+          "amount": 100000000,
+          "reason": "bet",
+          "ts": 1763512527281
+        },
+        {
+          "amount": 100000000,
+          "reason": "bet",
+          "ts": 1763513127168
+        },
+        {
+          "amount": 100000000,
+          "reason": "bet",
+          "ts": 1763513223487
+        },
+        {
+          "amount": 100000000,
+          "reason": "bet",
+          "ts": 1763515138917
+        },
+        {
+          "amount": 400000000,
+          "reason": "bet",
+          "ts": 1763516828244
+        },
+        {
+          "amount": 86000000,
+          "reason": "bet",
+          "ts": 1763549958186
+        },
+        {
+          "amount": 170000000,
+          "reason": "bet",
+          "ts": 1763550459991
+        },
+        {
+          "amount": 1000000000,
+          "reason": "bet",
+          "ts": 1763552334341
+        },
+        {
+          "amount": 1000000000,
+          "reason": "bet",
+          "ts": 1763552416129
+        },
+        {
+          "amount": 1000000000,
+          "reason": "bet",
+          "ts": 1763552497759
+        },
+        {
+          "amount": 1000000000,
+          "reason": "bet",
+          "ts": 1763552750989
+        },
+        {
+          "amount": 30000000,
+          "reason": "bet",
+          "ts": 1763554763520
+        },
+        {
+          "amount": 30000000,
+          "reason": "bet",
+          "ts": 1763555776504
+        },
+        {
+          "amount": 30000000,
+          "reason": "bet",
+          "ts": 1763555840843
+        },
+        {
+          "amount": 1000000000,
+          "reason": "bet",
+          "ts": 1763556540901
+        },
+        {
+          "amount": 1000000000,
+          "reason": "bet",
+          "ts": 1763556741767
+        },
+        {
+          "amount": 1000000000,
+          "reason": "bet",
+          "ts": 1763556841439
+        },
+        {
+          "amount": 1000000000,
+          "reason": "bet",
+          "ts": 1763556986749
+        },
+        {
+          "amount": 1000000000,
+          "reason": "bet",
+          "ts": 1763557155006
+        },
+        {
+          "amount": 1000000000,
+          "reason": "bet",
+          "ts": 1763571565739
+        },
+        {
+          "amount": 1000000000,
+          "reason": "bet",
+          "ts": 1763571741582
+        },
+        {
+          "amount": 1000000000,
+          "reason": "bet",
+          "ts": 1763574267103
+        },
+        {
+          "amount": 1000000000,
+          "reason": "bet",
+          "ts": 1763575668818
+        },
+        {
+          "amount": 2000000,
+          "reason": "gp-withdraw",
+          "ts": 1763598146661
+        },
+        {
+          "amount": 3000000,
+          "reason": "gp-withdraw",
+          "ts": 1763598485106
+        },
+        {
+          "amount": 1000000,
+          "reason": "gp-withdraw",
+          "ts": 1763598930963
+        },
+        {
+          "amount": 4000000,
+          "reason": "gp-withdraw",
+          "ts": 1763598971762
+        },
+        {
+          "amount": 2000000,
+          "reason": "gp-withdraw",
+          "ts": 1763600092784
+        },
+        {
+          "amount": 5500000,
+          "reason": "gp-withdraw",
+          "ts": 1763600207963
+        },
+        {
+          "amount": 1000000,
+          "reason": "gp-withdraw",
+          "ts": 1763600838047
+        },
+        {
+          "amount": 5700000,
+          "reason": "gp-withdraw",
+          "ts": 1763601142263
+        },
+        {
+          "amount": 15000,
+          "reason": "gp-withdraw",
+          "ts": 1763601177064
+        }
+      ],
+      "rakebackUnclaimed": 27270000
+    },
+    "1202449043066986508": {
+      "id": "1202449043066986508",
+      "displayName": "getoveritokay",
+      "linkedRsns": [
+        "SG Nh-mation"
+      ],
+      "balance": 408700000,
+      "wins": 0,
+      "losses": 0,
+      "betHistory": [
+        {
+          "displayName": null,
+          "roundId": "1763503647698",
+          "side": "red",
+          "amount": 100000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763503725104
+        },
+        {
+          "displayName": null,
+          "roundId": "1763503729918",
+          "side": "red",
+          "amount": 150000000,
+          "outcome": "win",
+          "payout": 292500000,
+          "ts": 1763504127742
+        },
+        {
+          "displayName": null,
+          "roundId": "1763504134342",
+          "side": "red",
+          "amount": 75000000,
+          "outcome": "win",
+          "payout": 146250000,
+          "ts": 1763504212342
+        },
+        {
+          "displayName": null,
+          "roundId": "1763504217762",
+          "side": "blue",
+          "amount": 150000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763504302962
+        },
+        {
+          "displayName": null,
+          "roundId": "1763504309581",
+          "side": "blue",
+          "amount": 220000000,
+          "outcome": "win",
+          "payout": 429000000,
+          "ts": 1763504392363
+        },
+        {
+          "displayName": null,
+          "roundId": "1763504397181",
+          "side": "blue",
+          "amount": 125000000,
+          "outcome": "win",
+          "payout": 243750000,
+          "ts": 1763504478784
+        },
+        {
+          "displayName": null,
+          "roundId": "1763504483601",
+          "side": "red",
+          "amount": 125000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763504565184
+        },
+        {
+          "displayName": null,
+          "roundId": "1763504570001",
+          "side": "red",
+          "amount": 250000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763504644733
+        },
+        {
+          "displayName": null,
+          "roundId": "1763504823240",
+          "side": "red",
+          "amount": 416000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763504900640
+        },
+        {
+          "displayName": null,
+          "roundId": "1763506074984",
+          "side": "blue",
+          "amount": 100000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763506156351
+        },
+        {
+          "displayName": null,
+          "roundId": "1763506163184",
+          "side": "blue",
+          "amount": 175000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763506241186
+        },
+        {
+          "displayName": null,
+          "roundId": "1763506247784",
+          "side": "blue",
+          "amount": 200000000,
+          "outcome": "win",
+          "payout": 390000000,
+          "ts": 1763506332988
+        },
+        {
+          "displayName": null,
+          "roundId": "1763506339024",
+          "side": "red",
+          "amount": 250000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763506417586
+        },
+        {
+          "displayName": null,
+          "roundId": "1763506837056",
+          "side": "red",
+          "amount": 150000000,
+          "outcome": "win",
+          "payout": 292500000,
+          "ts": 1763506915658
+        },
+        {
+          "displayName": null,
+          "roundId": "1763506922276",
+          "side": "red",
+          "amount": 308000000,
+          "outcome": "win",
+          "payout": 600600000,
+          "ts": 1763506999659
+        },
+        {
+          "displayName": null,
+          "roundId": "1763507516325",
+          "side": "blue",
+          "amount": 100000000,
+          "outcome": "win",
+          "payout": 195000000,
+          "ts": 1763507599710
+        },
+        {
+          "displayName": null,
+          "roundId": "1763507604526",
+          "side": "blue",
+          "amount": 100000000,
+          "outcome": "win",
+          "payout": 195000000,
+          "ts": 1763507686129
+        },
+        {
+          "displayName": null,
+          "roundId": "1763567291110",
+          "side": "blue",
+          "amount": 100000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763567360706
+        },
+        {
+          "displayName": null,
+          "roundId": "1763567367328",
+          "side": "blue",
+          "amount": 175000000,
+          "outcome": "win",
+          "payout": 341250000,
+          "ts": 1763567441111
+        },
+        {
+          "displayName": null,
+          "roundId": "1763567447143",
+          "side": "blue",
+          "amount": 125000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763567525129
+        },
+        {
+          "displayName": null,
+          "roundId": "1763567531742",
+          "side": "red",
+          "amount": 150000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763567621144
+        },
+        {
+          "displayName": null,
+          "roundId": "1763567626541",
+          "side": "red",
+          "amount": 250000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763567712945
+        },
+        {
+          "displayName": null,
+          "roundId": "1763571633171",
+          "side": "blue",
+          "amount": 125000000,
+          "outcome": "win",
+          "payout": 243750000,
+          "ts": 1763571719574
+        },
+        {
+          "displayName": null,
+          "roundId": "1763571724391",
+          "side": "red",
+          "amount": 50000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763571805973
+        },
+        {
+          "displayName": null,
+          "roundId": "1763571811992",
+          "side": "red",
+          "amount": 100000000,
+          "outcome": "win",
+          "payout": 195000000,
+          "ts": 1763571888194
+        },
+        {
+          "displayName": null,
+          "roundId": "1763573734577",
+          "side": "red",
+          "amount": 50000000,
+          "outcome": "win",
+          "payout": 97500000,
+          "ts": 1763573817364
+        },
+        {
+          "displayName": null,
+          "roundId": "1763573823977",
+          "side": "blue",
+          "amount": 100000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763573898379
+        },
+        {
+          "displayName": null,
+          "roundId": "1763575575574",
+          "side": "red",
+          "amount": 125000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763575654786
+        },
+        {
+          "displayName": null,
+          "roundId": "1763575933811",
+          "side": "blue",
+          "amount": 200000000,
+          "outcome": "win",
+          "payout": 390000000,
+          "ts": 1763576012415
+        }
+      ],
+      "deposits": [
+        {
+          "amount": 500000000,
+          "reason": "admin-add-gp",
+          "ts": 1763499520637
+        },
+        {
+          "amount": 292500000,
+          "reason": "round-win",
+          "ts": 1763504127742
+        },
+        {
+          "amount": 146250000,
+          "reason": "round-win",
+          "ts": 1763504212342
+        },
+        {
+          "amount": 429000000,
+          "reason": "round-win",
+          "ts": 1763504392363
+        },
+        {
+          "amount": 243750000,
+          "reason": "round-win",
+          "ts": 1763504478784
+        },
+        {
+          "amount": 500000000,
+          "reason": "admin-add-gp",
+          "ts": 1763504937469
+        },
+        {
+          "amount": 390000000,
+          "reason": "round-win",
+          "ts": 1763506332988
+        },
+        {
+          "amount": 292500000,
+          "reason": "round-win",
+          "ts": 1763506915658
+        },
+        {
+          "amount": 600600000,
+          "reason": "round-win",
+          "ts": 1763506999658
+        },
+        {
+          "amount": 500000000,
+          "reason": "admin-add-gp",
+          "ts": 1763507431826
+        },
+        {
+          "amount": 195000000,
+          "reason": "round-win",
+          "ts": 1763507599709
+        },
+        {
+          "amount": 300000,
+          "reason": "rakeback-claim",
+          "ts": 1763507685534
+        },
+        {
+          "amount": 195000000,
+          "reason": "round-win",
+          "ts": 1763507686128
+        },
+        {
+          "amount": 300000,
+          "reason": "rakeback-claim",
+          "ts": 1763507699388
+        },
+        {
+          "amount": 341250000,
+          "reason": "round-win",
+          "ts": 1763567441111
+        },
+        {
+          "amount": 243750000,
+          "reason": "round-win",
+          "ts": 1763571719573
+        },
+        {
+          "amount": 195000000,
+          "reason": "round-win",
+          "ts": 1763571888194
+        },
+        {
+          "amount": 97500000,
+          "reason": "round-win",
+          "ts": 1763573817363
+        },
+        {
+          "amount": 390000000,
+          "reason": "round-win",
+          "ts": 1763576012415
+        }
+      ],
+      "withdrawals": [
+        {
+          "amount": 100000000,
+          "reason": "bet",
+          "ts": 1763503652810
+        },
+        {
+          "amount": 150000000,
+          "reason": "bet",
+          "ts": 1763503738357
+        },
+        {
+          "amount": 75000000,
+          "reason": "bet",
+          "ts": 1763504150320
+        },
+        {
+          "amount": 150000000,
+          "reason": "bet",
+          "ts": 1763504230021
+        },
+        {
+          "amount": 220000000,
+          "reason": "bet",
+          "ts": 1763504327032
+        },
+        {
+          "amount": 125000000,
+          "reason": "bet",
+          "ts": 1763504404413
+        },
+        {
+          "amount": 125000000,
+          "reason": "bet",
+          "ts": 1763504507649
+        },
+        {
+          "amount": 250000000,
+          "reason": "bet",
+          "ts": 1763504578606
+        },
+        {
+          "amount": 416000000,
+          "reason": "bet",
+          "ts": 1763504830850
+        },
+        {
+          "amount": 100000000,
+          "reason": "bet",
+          "ts": 1763506091873
+        },
+        {
+          "amount": 175000000,
+          "reason": "bet",
+          "ts": 1763506168935
+        },
+        {
+          "amount": 200000000,
+          "reason": "bet",
+          "ts": 1763506272509
+        },
+        {
+          "amount": 250000000,
+          "reason": "bet",
+          "ts": 1763506351812
+        },
+        {
+          "amount": 150000000,
+          "reason": "bet",
+          "ts": 1763506860729
+        },
+        {
+          "amount": 308000000,
+          "reason": "bet",
+          "ts": 1763506937538
+        },
+        {
+          "amount": 600000000,
+          "reason": "bet",
+          "ts": 1763507019313
+        },
+        {
+          "amount": 100000000,
+          "reason": "bet",
+          "ts": 1763507525374
+        },
+        {
+          "amount": 100000000,
+          "reason": "bet",
+          "ts": 1763507624425
+        },
+        {
+          "amount": 100000000,
+          "reason": "bet",
+          "ts": 1763567304810
+        },
+        {
+          "amount": 175000000,
+          "reason": "bet",
+          "ts": 1763567372455
+        },
+        {
+          "amount": 125000000,
+          "reason": "bet",
+          "ts": 1763567454171
+        },
+        {
+          "amount": 150000000,
+          "reason": "bet",
+          "ts": 1763567538226
+        },
+        {
+          "amount": 250000000,
+          "reason": "bet",
+          "ts": 1763567644453
+        },
+        {
+          "amount": 125000000,
+          "reason": "bet",
+          "ts": 1763571646920
+        },
+        {
+          "amount": 50000000,
+          "reason": "bet",
+          "ts": 1763571732674
+        },
+        {
+          "amount": 100000000,
+          "reason": "bet",
+          "ts": 1763571820151
+        },
+        {
+          "amount": 50000000,
+          "reason": "bet",
+          "ts": 1763573752890
+        },
+        {
+          "amount": 100000000,
+          "reason": "bet",
+          "ts": 1763573837357
+        },
+        {
+          "amount": 125000000,
+          "reason": "bet",
+          "ts": 1763575585560
+        },
+        {
+          "amount": 200000000,
+          "reason": "bet",
+          "ts": 1763575940983
+        }
+      ],
+      "rakebackUnclaimed": 4650000
+    },
+    "963139593065074738": {
+      "id": "963139593065074738",
+      "displayName": ".obfuscated",
+      "linkedRsns": [],
+      "balance": 998850000,
+      "wins": 0,
+      "losses": 0,
+      "betHistory": [
+        {
+          "displayName": null,
+          "roundId": "1763501437052",
+          "side": "blue",
+          "amount": 1000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763501507836
+        },
+        {
+          "displayName": null,
+          "roundId": "1763501514453",
+          "side": "blue",
+          "amount": 1000000,
+          "outcome": "loss",
+          "payout": 0,
+          "ts": 1763501595457
+        },
+        {
+          "displayName": null,
+          "roundId": "1763502122338",
+          "side": "blue",
+          "amount": 1000000,
+          "outcome": "win",
+          "payout": 1950000,
+          "ts": 1763502205122
+        },
+        {
+          "displayName": null,
+          "roundId": "1763502454758",
+          "side": "blue",
+          "amount": 1000000,
+          "outcome": "win",
+          "payout": 1950000,
+          "ts": 1763502533472
+        },
+        {
+          "displayName": null,
+          "roundId": "1763502538181",
+          "side": "blue",
+          "amount": 1000000,
+          "outcome": "win",
+          "payout": 1950000,
+          "ts": 1763502619163
+        }
+      ],
+      "deposits": [
+        {
+          "amount": 1000000000,
+          "reason": "admin-add-gp",
+          "ts": 1763501424175
+        },
+        {
+          "amount": 1950000,
+          "reason": "round-win",
+          "ts": 1763502205122
+        },
+        {
+          "amount": 1950000,
+          "reason": "round-win",
+          "ts": 1763502533471
+        },
+        {
+          "amount": 1950000,
+          "reason": "round-win",
+          "ts": 1763502619163
+        }
+      ],
+      "withdrawals": [
+        {
+          "amount": 1000000,
+          "reason": "bet",
+          "ts": 1763501449399
+        },
+        {
+          "amount": 1000000,
+          "reason": "bet",
+          "ts": 1763501519812
+        },
+        {
+          "amount": 1000000,
+          "reason": "bet",
+          "ts": 1763501609738
+        },
+        {
+          "amount": 1000000,
+          "reason": "bet",
+          "ts": 1763502141552
+        },
+        {
+          "amount": 1000000,
+          "reason": "bet",
+          "ts": 1763502294730
+        },
+        {
+          "amount": 1000000,
+          "reason": "bet",
+          "ts": 1763502461686
+        },
+        {
+          "amount": 1000000,
+          "reason": "bet",
+          "ts": 1763502558552
+        }
+      ],
+      "rakebackUnclaimed": 0
+    },
+    "671865153775468575": {
+      "id": "671865153775468575",
+      "displayName": "fanc.",
+      "linkedRsns": [],
+      "balance": 1000000000,
+      "wins": 0,
+      "losses": 0,
+      "betHistory": [],
+      "deposits": [
+        {
+          "amount": 1000000000,
+          "reason": "admin-add-gp",
+          "ts": 1763513062449
+        }
+      ],
+      "withdrawals": [],
+      "rakebackUnclaimed": 0
+    },
+    "1341892817634721812": {
+      "id": "1341892817634721812",
+      "displayName": "gpsales2k25",
+      "linkedRsns": [],
+      "balance": 204680000,
+      "wins": 0,
+      "losses": 0,
+      "betHistory": [
+        {
+          "displayName": null,
+          "roundId": "1763513451555",
+          "side": "red",
+          "amount": 25000000,
+          "outcome": "win",
+          "payout": 48750000,
+          "ts": 1763513536749
+        },
+        {
+          "displayName": null,
+          "roundId": "1763513543389",
+          "side": "blue",
+          "amount": 35000000,
+          "outcome": "win",
+          "payout": 68250000,
+          "ts": 1763513620169
+        },
+        {
+          "displayName": null,
+          "roundId": "1763555169837",
+          "side": "blue",
+          "amount": 50000000,
+          "outcome": "win",
+          "payout": 97500000,
+          "ts": 1763555251416
+        }
+      ],
+      "deposits": [
+        {
+          "amount": 100000000,
+          "reason": "admin-add-gp",
+          "ts": 1763513425914
+        },
+        {
+          "amount": 48750000,
+          "reason": "round-win",
+          "ts": 1763513536748
+        },
+        {
+          "amount": 68250000,
+          "reason": "round-win",
+          "ts": 1763513620168
+        },
+        {
+          "amount": 180000,
+          "reason": "rakeback-claim",
+          "ts": 1763555186155
+        },
+        {
+          "amount": 97500000,
+          "reason": "round-win",
+          "ts": 1763555251416
+        }
+      ],
+      "withdrawals": [
+        {
+          "amount": 25000000,
+          "reason": "bet",
+          "ts": 1763513463212
+        },
+        {
+          "amount": 35000000,
+          "reason": "bet",
+          "ts": 1763513554115
+        },
+        {
+          "amount": 50000000,
+          "reason": "bet",
+          "ts": 1763555176586
+        }
+      ],
+      "rakebackUnclaimed": 150000
+    }
+  },
+  "stats": {
+    "redStreak": 0,
+    "blueStreak": 1,
+    "lastWinner": "blue",
+    "lastWinners": [
+      "blue",
+      "blue",
+      "red",
+      "red",
+      "red",
+      "blue",
+      "red",
+      "red",
+      "red",
+      "red",
+      "blue",
+      "blue",
+      "blue",
+      "blue",
+      "red",
+      "blue",
+      "blue",
+      "red",
+      "blue",
+      "red",
+      "red",
+      "red",
+      "blue",
+      "red",
+      "red",
+      "red",
+      "blue",
+      "red",
+      "blue",
+      "red",
+      "blue",
+      "red",
+      "blue",
+      "blue",
+      "blue",
+      "blue",
+      "red",
+      "blue",
+      "red",
+      "blue",
+      "red",
+      "red",
+      "red",
+      "red",
+      "red",
+      "blue",
+      "red",
+      "blue",
+      "red",
+      "blue"
+    ]
+  },
+  "round": {
+    "roundId": "1763577466356",
+    "red": "Emirs Arenas",
+    "blue": "fajni pubec",
+    "open": true,
+    "messageId": "1440690119605751901",
+    "channelId": "1440416961098944653"
+  }
+}
