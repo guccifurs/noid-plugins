@@ -141,6 +141,12 @@ public class GearSwapperPlugin extends Plugin {
     private DebugOverlay debugOverlay;
 
     @Inject
+    private InventoryUtilsOverlay inventoryUtilsOverlay;
+
+    @Inject
+    private InventoryUtilsButtonManager buttonManager;
+
+    @Inject
     private Injector injector;
 
     @Inject
@@ -269,6 +275,21 @@ public class GearSwapperPlugin extends Plugin {
         return configManager.getConfiguration(GearSwapperConfig.GROUP, "loadout" + num + "Name");
     }
 
+    /**
+     * Get all configured loadout names (for Inventory Utils dropdown)
+     * Returns list of non-empty loadout names
+     */
+    public java.util.List<String> getConfiguredLoadoutNames() {
+        java.util.List<String> names = new java.util.ArrayList<>();
+        for (int i = 1; i <= 20; i++) {
+            String name = getLoadoutName(i);
+            if (name != null && !name.trim().isEmpty()) {
+                names.add(name);
+            }
+        }
+        return names;
+    }
+
     // Public wrapper methods for trigger system
     public String getLoadoutNameForTrigger(int num) {
         return getLoadoutName(num);
@@ -313,6 +334,73 @@ public class GearSwapperPlugin extends Plugin {
 
     public boolean isMouseCircleTestRunning() {
         return mouseCircleTestRunning;
+    }
+
+    /**
+     * Execute a loadout by its name (for Inventory Utils overlay)
+     * Searches through all loadouts to find one matching the given name
+     */
+    public void executeLoadoutByName(String loadoutName) {
+        if (loadoutName == null || loadoutName.isEmpty()) {
+            Logger.warn("[Gear Swapper] executeLoadoutByName called with empty name");
+            return;
+        }
+
+        // Search through loadouts 1-20 to find matching name
+        for (int i = 1; i <= 20; i++) {
+            String name = getLoadoutName(i);
+            if (name != null && name.equalsIgnoreCase(loadoutName.trim())) {
+                Logger.norm("[Gear Swapper] Found loadout '" + loadoutName + "' at slot " + i);
+
+                // Get loadout data and execute
+                String items = getLoadoutItems(i);
+                boolean attack = getLoadoutAttack(i);
+
+                if (items != null && !items.isEmpty()) {
+                    executeCommands(items, attack);
+                } else {
+                    Logger.warn("[Gear Swapper] Loadout '" + loadoutName + "' has no items configured");
+                }
+                return;
+            }
+        }
+
+        // Also check if the name is a number (e.g., "1", "2") to directly select
+        // loadout slot
+        try {
+            int slotNum = Integer.parseInt(loadoutName.trim());
+            if (slotNum >= 1 && slotNum <= 20) {
+                String items = getLoadoutItems(slotNum);
+                boolean attack = getLoadoutAttack(slotNum);
+
+                if (items != null && !items.isEmpty()) {
+                    Logger.norm("[Gear Swapper] Executing loadout slot " + slotNum);
+                    executeCommands(items, attack);
+                } else {
+                    Logger.warn("[Gear Swapper] Loadout slot " + slotNum + " has no items configured");
+                }
+                return;
+            }
+        } catch (NumberFormatException ignored) {
+            // Not a number, that's fine
+        }
+
+        Logger.warn("[Gear Swapper] Could not find loadout named '" + loadoutName + "'");
+    }
+
+    /**
+     * Activate a prayer by name (for Inventory Utils overlay)
+     * Supports common prayer names like "Protect from Melee", "Piety", etc.
+     */
+    public void activatePrayerByName(String prayerName) {
+        if (prayerName == null || prayerName.isEmpty()) {
+            Logger.warn("[Gear Swapper] activatePrayerByName called with empty name");
+            return;
+        }
+
+        // Use existing prayer system - wrap in array
+        String[] prayers = new String[] { prayerName.trim() };
+        applyPrayers(prayers);
     }
 
     public long getMouseCircleTestStartMs() {
@@ -548,6 +636,11 @@ public class GearSwapperPlugin extends Plugin {
             // Add debug overlay if enabled
             if (config.showDebugOverlay()) {
                 overlayManager.add(debugOverlay);
+            }
+
+            // Add Inventory Utils overlay if enabled
+            if (config.inventoryUtilsEnabled()) {
+                overlayManager.add(inventoryUtilsOverlay);
             }
 
             // Start the trigger engine with error handling
@@ -833,6 +926,9 @@ public class GearSwapperPlugin extends Plugin {
             try {
                 overlayManager.remove(overlay);
                 overlayManager.remove(debugOverlay);
+                overlayManager.remove(inventoryUtilsOverlay);
+                inventoryUtilsOverlay.shutdown();
+                buttonManager.shutdown();
             } catch (Exception e) {
                 Logger.error("[Gear Swapper 2.0] Error removing overlay: " + e.getMessage());
             }
@@ -1095,6 +1191,16 @@ public class GearSwapperPlugin extends Plugin {
         } else if ("clearTargetHotkey".equals(key)) {
             // Re-register clear-target hotkey when the config changes
             registerClearTargetHotkey();
+        } else if ("inventoryUtilsEnabled".equals(key)) {
+            // Toggle Inventory Utils overlay
+            boolean enabled = Boolean.parseBoolean(event.getNewValue());
+            Logger.norm("[Gear Swapper] Inventory Utils overlay " + (enabled ? "enabled" : "disabled"));
+
+            if (enabled) {
+                overlayManager.add(inventoryUtilsOverlay);
+            } else {
+                overlayManager.remove(inventoryUtilsOverlay);
+            }
         }
     }
 
@@ -3491,14 +3597,15 @@ public class GearSwapperPlugin extends Plugin {
             scheduledScriptTasks.removeAll(tasksToRemove);
         }
 
+        // Show animation overhead if enabled (independent of looper)
+        if (config != null && config.showAnimationOverhead() && client != null && client.getLocalPlayer() != null) {
+            int currentAnim = client.getLocalPlayer().getAnimation();
+            client.getLocalPlayer().setOverheadText("Anim: " + currentAnim);
+            client.getLocalPlayer().setOverheadCycle(100);
+        }
+
         // Global looper script: execute once per tick when enabled
         if (looperEnabled && looperScript != null && !looperScript.trim().isEmpty()) {
-            // Show animation overhead if enabled
-            if (config != null && config.showAnimationOverhead() && client != null && client.getLocalPlayer() != null) {
-                int currentAnim = client.getLocalPlayer().getAnimation();
-                client.getLocalPlayer().setOverheadText("Anim: " + currentAnim);
-                client.getLocalPlayer().setOverheadCycle(100);
-            }
 
             // Check if paused by RandomAfkChance or Wait command
             if (isLooperPaused()) {
