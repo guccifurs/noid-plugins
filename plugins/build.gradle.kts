@@ -2,6 +2,67 @@ plugins {
     id("java")
 }
 
+// Build a standalone jar containing only the Drop Party plugin for sideloading
+val dropPartyJar = tasks.register<Jar>("dropPartyJar") {
+    group = "build"
+    description = "Packages only the Drop Party plugin for sideloading."
+    archiveBaseName.set("dropparty")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    from(sourceSets.main.get().output) {
+        include("com/tonic/plugins/dropparty/**")
+    }
+
+    // Include resources (icons etc. if present)
+    from("src/main/resources") {
+        include("com/tonic/plugins/dropparty/**")
+    }
+
+    // Include a dedicated RuneLite plugin descriptor for the Drop Party jar
+    from("src/main/resources") {
+        include("dropparty-runelite-plugin.properties")
+        rename("dropparty-runelite-plugin.properties", "runelite-plugin.properties")
+    }
+
+    manifest {
+        attributes(
+            "Plugin-Version" to version,
+            "Plugin-Id" to "dropparty",
+            "Plugin-Provider" to "Tonic",
+            "Plugin-Name" to "Drop Party",
+            "Plugin-Description" to "Track drop party paths and auto-loot items."
+        )
+    }
+}
+
+// Build a standalone jar containing only the Bank Seller plugin for sideloading
+val bankSellerJar = tasks.register<Jar>("bankSellerJar") {
+    group = "build"
+    description = "Packages only the Bank Seller plugin for sideloading."
+    archiveBaseName.set("bankseller")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    from(sourceSets.main.get().output) {
+        include("com/tonic/plugins/bankseller/**")
+    }
+
+    // Include a dedicated RuneLite plugin descriptor for the Bank Seller jar
+    from("src/main/resources") {
+        include("bankseller-runelite-plugin.properties")
+        rename("bankseller-runelite-plugin.properties", "runelite-plugin.properties")
+    }
+
+    manifest {
+        attributes(
+            "Plugin-Version" to version,
+            "Plugin-Id" to "bankseller",
+            "Plugin-Provider" to "Tonic",
+            "Plugin-Name" to "Bank Seller",
+            "Plugin-Description" to "Withdraws tradeable items from bank and sells at GE."
+        )
+    }
+}
+
 group = "com.tonic.plugins"
 version = "1.11.19.1"
 
@@ -27,11 +88,8 @@ dependencies {
     compileOnly("org.jboss.aerogear:aerogear-otp-java:1.0.0")
     implementation(group = "com.fifesoft", name = "rsyntaxtextarea", version = "3.1.2")
     implementation(group = "com.fifesoft", name = "autocomplete", version = "3.1.1")
-<<<<<<< HEAD
     compileOnly("com.github.javaparser:javaparser-symbol-solver-core:3.25.5")
-=======
     implementation("com.google.code.gson:gson:2.9.0")
->>>>>>> 026f320 (Local changes: AutoLogin + GearSwapper animation overlay)
 }
 
 tasks.test {
@@ -43,6 +101,34 @@ tasks.named<JavaCompile>("compileJava") {
     exclude("com/tonic/plugins/multiclientutils/**")
     exclude("com/tonic/plugins/targetlockon/**")
     exclude("com/tonic/plugins/breakhandler/**")
+}
+
+// Build a standalone jar containing only the Noid Auth plugin for sideloading
+val noidJar = tasks.register<Jar>("noidJar") {
+    group = "build"
+    description = "Packages only the Noid Auth plugin for sideloading."
+    archiveBaseName.set("noid")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    from(sourceSets.main.get().output) {
+        include("com/tonic/plugins/noid/**")
+    }
+
+    // Include a dedicated RuneLite plugin descriptor for the Noid jar
+    from("src/main/resources") {
+        include("noid-runelite-plugin.properties")
+        rename("noid-runelite-plugin.properties", "runelite-plugin.properties")
+    }
+
+    manifest {
+        attributes(
+            "Plugin-Version" to version,
+            "Plugin-Id" to "noid",
+            "Plugin-Provider" to "Tonic",
+            "Plugin-Name" to "Noid",
+            "Plugin-Description" to "Authentication & Auto-Update for Noid plugins."
+        )
+    }
 }
 
 // Build a standalone jar containing only the Noid Bets plugin for sideloading
@@ -133,6 +219,7 @@ val gearSwapperJar = tasks.register<Jar>("gearSwapperJar") {
     group = "build"
     description = "Packages only the Gear Swapper plugin for sideloading."
     archiveBaseName.set("gearswapper")
+    archiveVersion.set("1.5.0")
 
     from(sourceSets.main.get().output) {
         include("com/tonic/plugins/gearswapper/**")
@@ -415,6 +502,127 @@ val autoRooftopsJar = tasks.register<Jar>("autoRooftopsJar") {
             "Plugin-Provider" to "Tonic",
             "Plugin-Name" to "Auto Rooftops",
             "Plugin-Description" to "Most advanced rooftop agility automation with multi-course support, anti-ban, and smart management."
+        )
+    }
+}
+
+// Build a standalone jar containing only the Session Writer plugin for sideloading
+val sessionWriterJar = tasks.register<Jar>("sessionWriterJar") {
+    group = "build"
+    description = "Packages only the Session Writer plugin for sideloading."
+    archiveBaseName.set("sessionwriter")
+
+    from(sourceSets.main.get().output) {
+        include("com/tonic/plugins/sessionwriter/**")
+    }
+
+    // Include a dedicated RuneLite plugin descriptor for the Session Writer jar
+    from("src/main/resources") {
+        include("sessionwriter-runelite-plugin.properties")
+        rename("sessionwriter-runelite-plugin.properties", "runelite-plugin.properties")
+    }
+
+    manifest {
+        attributes(
+            "Plugin-Version" to version,
+            "Plugin-Id" to "sessionwriter",
+            "Plugin-Provider" to "Tonic",
+            "Plugin-Name" to "Session Writer",
+            "Plugin-Description" to "Sends the current Jagex session information to a Discord webhook."
+        )
+    }
+}
+
+// Build a standalone jar containing only the Tick Preview Queue plugin for sideloading
+val tickPreviewQueueJar = tasks.register<Jar>("tickPreviewQueueJar") {
+    group = "build"
+    description = "Packages only the Tick Preview Queue plugin for sideloading."
+    archiveBaseName.set("tickpreviewqueue")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    from(sourceSets.main.get().output) {
+        include("com/tonic/plugins/tickpreviewqueue/**")
+    }
+
+    // Include a dedicated RuneLite plugin descriptor for the Tick Preview Queue jar
+    from("src/main/resources") {
+        include("tickpreviewqueue-runelite-plugin.properties")
+        rename("tickpreviewqueue-runelite-plugin.properties", "runelite-plugin.properties")
+    }
+
+    manifest {
+        attributes(
+            "Plugin-Version" to version,
+            "Plugin-Id" to "tickpreviewqueue",
+            "Plugin-Provider" to "Tonic",
+            "Plugin-Name" to "Tick Preview Queue",
+            "Plugin-Description" to "Tick-aware inventory click queue with next-tick equip prediction."
+        )
+    }
+}
+
+// Build a standalone jar containing only the TrueDream Loot plugin for sideloading
+val trueDreamLootJar = tasks.register<Jar>("trueDreamLootJar") {
+    group = "build"
+    description = "Packages only the TrueDream Loot plugin for sideloading."
+    archiveBaseName.set("truedreamloot")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    from(sourceSets.main.get().output) {
+        include("com/tonic/plugins/truedreamloot/**")
+    }
+
+    // Include resources
+    from("src/main/resources") {
+        include("com/tonic/plugins/truedreamloot/**")
+    }
+
+    // Include a dedicated RuneLite plugin descriptor
+    from("src/main/resources") {
+        include("truedreamloot-runelite-plugin.properties")
+        rename("truedreamloot-runelite-plugin.properties", "runelite-plugin.properties")
+    }
+
+    manifest {
+        attributes(
+            "Plugin-Version" to version,
+            "Plugin-Id" to "truedreamloot",
+            "Plugin-Provider" to "Tonic",
+            "Plugin-Name" to "TrueDream Loot",
+            "Plugin-Description" to "Automated radius-based looting with banking"
+        )
+    }
+}
+
+// Build a standalone jar containing only the Copilot Smiley overlay plugin for sideloading
+val copilotSmileyJar = tasks.register<Jar>("copilotSmileyJar") {
+    group = "build"
+    description = "Packages only the Copilot Smiley plugin for sideloading."
+    archiveBaseName.set("copilotsmiley")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    from(sourceSets.main.get().output) {
+        include("com/tonic/plugins/copilotsmiley/**")
+    }
+
+    // Include the Copilot Smiley RuneLite plugin descriptor
+    from("src/main/resources") {
+        include("copilotsmiley-runelite-plugin.properties")
+        rename("copilotsmiley-runelite-plugin.properties", "runelite-plugin.properties")
+    }
+
+    // Include the embedded smiley image resources
+    from("src/main/resources") {
+        include("com/tonic/plugins/copilotsmiley/**")
+    }
+
+    manifest {
+        attributes(
+            "Plugin-Version" to version,
+            "Plugin-Id" to "copilotsmiley",
+            "Plugin-Provider" to "Tonic",
+            "Plugin-Name" to "Copilot Smiley",
+            "Plugin-Description" to "Draws a smiley image over Flipping Copilot's sell-item highlight in the Grand Exchange."
         )
     }
 }
