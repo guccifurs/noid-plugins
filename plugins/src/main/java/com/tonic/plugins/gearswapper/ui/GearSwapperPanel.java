@@ -468,30 +468,50 @@ public class GearSwapperPanel extends PluginPanel {
 
         String scriptText = editorArea.getText();
 
-        JDialog dialog = new JDialog(owner, "Script Blocks", Dialog.ModalityType.APPLICATION_MODAL);
+        JDialog dialog = new JDialog(owner, "Script Editor", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-        dialog.setSize(520, 640);
+        dialog.setSize(700, 600);
         dialog.setLocationRelativeTo(owner);
 
-        ScriptBlockEditorPanel blockPanel = new ScriptBlockEditorPanel(scriptText);
+        // Use new IDE-like editor
+        ScriptEditorIDE ideEditor = new ScriptEditorIDE(scriptText);
         dialog.getContentPane().setLayout(new BorderLayout());
-        dialog.getContentPane().add(blockPanel, BorderLayout.CENTER);
+        dialog.getContentPane().add(ideEditor, BorderLayout.CENTER);
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
-        JButton applyBtn = new JButton("Apply");
-        JButton closeBtn = new JButton("Close");
+        buttons.setBackground(new Color(37, 37, 38));
+
+        JButton applyBtn = new JButton("Save & Close");
+        applyBtn.setBackground(new Color(76, 175, 80));
+        applyBtn.setForeground(Color.WHITE);
+        applyBtn.setFocusPainted(false);
+
+        JButton cancelBtn = new JButton("Cancel");
+        cancelBtn.setBackground(new Color(97, 97, 97));
+        cancelBtn.setForeground(Color.WHITE);
+        cancelBtn.setFocusPainted(false);
+
+        buttons.add(cancelBtn);
         buttons.add(applyBtn);
-        buttons.add(closeBtn);
         dialog.getContentPane().add(buttons, BorderLayout.SOUTH);
 
         applyBtn.addActionListener(e -> {
-            String newScript = blockPanel.buildScript();
+            String newScript = ideEditor.getScript();
             if (newScript != null) {
                 editorArea.setText(newScript);
             }
+            dialog.dispose();
         });
 
-        closeBtn.addActionListener(e -> dialog.dispose());
+        cancelBtn.addActionListener(e -> dialog.dispose());
+
+        // Focus editor when dialog opens
+        dialog.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowOpened(java.awt.event.WindowEvent e) {
+                ideEditor.focusEditor();
+            }
+        });
 
         dialog.setVisible(true);
     }
