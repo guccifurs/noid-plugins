@@ -10,6 +10,10 @@ const PORT = process.env.PORT || 8765;
 // Store connected users: rsn -> { ws, friends: [], sharing: { with: rsn, role: 'sender'|'receiver' } }
 const users = new Map();
 
+// Frame counter for debugging
+let frameCount = 0;
+let lastFrameLog = Date.now();
+
 // Create WebSocket server
 const wss = new WebSocket.Server({ port: PORT });
 
@@ -187,12 +191,23 @@ function handleShareDecline(declinerRsn, { from }) {
 
 function handleFrame(senderRsn, { data }) {
     const sender = users.get(senderRsn);
-    if (!sender || !sender.sharing || sender.sharing.role !== 'sender') return;
+    if (!sender || !sender.sharing || sender.sharing.role !== 'sender') {
+        return;
+    }
 
     const receiver = users.get(sender.sharing.with);
     if (!receiver) {
         endShareSession(senderRsn, sender.sharing.with);
         return;
+    }
+
+    // Log frame activity
+    frameCount++;
+    const now = Date.now();
+    if (now - lastFrameLog >= 5000) {
+        console.log(`[FriendShare] Relayed ${frameCount} frames (${senderRsn} -> ${sender.sharing.with}), last: ${data ? data.length : 0} bytes`);
+        frameCount = 0;
+        lastFrameLog = now;
     }
 
     // Relay frame to receiver

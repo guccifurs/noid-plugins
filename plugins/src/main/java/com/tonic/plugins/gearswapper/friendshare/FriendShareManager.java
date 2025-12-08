@@ -73,7 +73,7 @@ public class FriendShareManager {
         service.setOnShareEnd(this::handleShareEnd);
         service.setOnFrameReceived(this::handleFrameReceived);
         service.setOnFriendsUpdated(friends -> {
-            System.out.println("[FriendShare] Online friends updated: " + friends);
+            System.out.println("[FriendShare] Online friends with plugin: " + friends);
         });
 
         // Connect to server
@@ -118,6 +118,42 @@ public class FriendShareManager {
     }
 
     /**
+     * Show a dialog to select friend and share screen.
+     * This can be called from the panel as a manual trigger.
+     */
+    public void showShareDialog() {
+        if (!service.isConnected()) {
+            JOptionPane.showMessageDialog(findFrame(),
+                    "Not connected to FriendShare server.\nCheck console for connection errors.",
+                    "FriendShare", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        Set<String> onlineFriends = service.getOnlineFriends();
+
+        if (onlineFriends.isEmpty()) {
+            JOptionPane.showMessageDialog(findFrame(),
+                    "No friends online with GearSwapper.\n\nMake sure your friend:\n1. Has GearSwapper enabled\n2. Has you added as a friend\n3. Is logged in",
+                    "FriendShare", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        String[] friends = onlineFriends.toArray(new String[0]);
+        String selected = (String) JOptionPane.showInputDialog(
+                findFrame(),
+                "Select friend to share screen with:",
+                "FriendShare",
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                friends,
+                friends[0]);
+
+        if (selected != null) {
+            requestShare(selected);
+        }
+    }
+
+    /**
      * Request to share screen with a friend.
      */
     public void requestShare(String friendName) {
@@ -155,8 +191,9 @@ public class FriendShareManager {
      * Check if a friend is online with GearSwapper.
      */
     public boolean isFriendOnlineWithPlugin(String friendName) {
-        return service.getOnlineFriends().stream()
+        boolean online = service.getOnlineFriends().stream()
                 .anyMatch(f -> f.equalsIgnoreCase(friendName));
+        return online;
     }
 
     /**
@@ -164,6 +201,27 @@ public class FriendShareManager {
      */
     public Set<String> getOnlineFriends() {
         return service.getOnlineFriends();
+    }
+
+    /**
+     * Check if connected to server.
+     */
+    public boolean isConnected() {
+        return service.isConnected();
+    }
+
+    /**
+     * Get connection status for UI display.
+     */
+    public String getStatus() {
+        if (!service.isConnected()) {
+            return "Not connected";
+        }
+        Set<String> friends = service.getOnlineFriends();
+        if (friends.isEmpty()) {
+            return "Connected, no friends online";
+        }
+        return "Connected, " + friends.size() + " friends online";
     }
 
     // ========== Menu Entry Handler ==========
