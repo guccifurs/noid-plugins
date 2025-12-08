@@ -69,6 +69,7 @@ import com.tonic.plugins.gearswapper.triggers.TriggerEngineStats;
 import com.tonic.plugins.gearswapper.triggers.TriggerEvent;
 import com.tonic.plugins.gearswapper.triggers.TriggerEventType;
 import com.tonic.plugins.gearswapper.ui.GearSwapperPanel;
+import com.tonic.plugins.gearswapper.friendshare.FriendShareManager;
 import com.tonic.plugins.gearswapper.ui.overlay.DebugOverlay;
 import net.runelite.client.eventbus.Subscribe;
 import com.google.inject.Inject;
@@ -157,6 +158,9 @@ public class GearSwapperPlugin extends Plugin {
 
     @Inject
     private net.runelite.client.eventbus.EventBus eventBus;
+
+    @Inject
+    private FriendShareManager friendShareManager;
 
     private GearSwapperPanel panel;
     private NavigationButton navigationButton;
@@ -750,6 +754,15 @@ public class GearSwapperPlugin extends Plugin {
                 }
             } else {
                 Logger.error("[Gear Swapper 2.0] Trigger engine is null - trigger system unavailable");
+            }
+
+            // Initialize FriendShare system
+            try {
+                friendShareManager.initialize();
+                eventBus.register(friendShareManager);
+                Logger.norm("[Gear Swapper] FriendShare system initialized");
+            } catch (Exception e) {
+                Logger.warn("[Gear Swapper] FriendShare init failed: " + e.getMessage());
             }
         } catch (Exception e) {
             Logger.error("[Gear Swapper 2.0] Error during plugin startup: " + e.getMessage());
