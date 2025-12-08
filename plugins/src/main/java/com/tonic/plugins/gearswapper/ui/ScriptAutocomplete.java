@@ -146,6 +146,11 @@ public class ScriptAutocomplete {
         suggestionList.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
         suggestionList.setVisibleRowCount(10);
 
+        // CRITICAL: Make non-focusable so typing continues in editor
+        suggestionList.setFocusable(false);
+        popup.setFocusable(false);
+        docPanel.setFocusable(false);
+
         // Custom cell renderer
         suggestionList.setCellRenderer(new DefaultListCellRenderer() {
             @Override
