@@ -1,6 +1,7 @@
 package com.tonic.plugins.gearswapper;
 
 import com.tonic.Logger;
+import com.tonic.api.widgets.PrayerAPI;
 import net.runelite.api.Client;
 import net.runelite.client.input.MouseListener;
 import net.runelite.client.input.MouseManager;
@@ -33,6 +34,7 @@ public class InventoryUtilsOverlay extends Overlay implements MouseListener {
     private static final Color LOADOUT_COLOR = new Color(255, 200, 100);
     private static final Color PRAYER_COLOR = new Color(200, 150, 255);
     private static final Color PLUS_COLOR = new Color(120, 200, 120);
+    private static final Color PRAYER_ACTIVE_GLOW = new Color(88, 166, 255, 150); // Cool blue glow
 
     private final Client client;
     private final GearSwapperPlugin plugin;
@@ -169,6 +171,28 @@ public class InventoryUtilsOverlay extends Overlay implements MouseListener {
             graphics.setColor(BUTTON_BORDER);
             graphics.drawRoundRect(x, y, buttonSize, buttonSize, 6, 6);
 
+            // Draw active prayer glow
+            if (preset.type == PresetType.PRAYER && isPrayerActive(preset.value)) {
+                // Draw outer glow effect (multiple layers for soft edge)
+                Graphics2D g2d = (Graphics2D) graphics.create();
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                // Outer glow layers
+                for (int glowLayer = 3; glowLayer >= 1; glowLayer--) {
+                    int alpha = 50 + (3 - glowLayer) * 35;
+                    g2d.setColor(new Color(88, 166, 255, alpha));
+                    g2d.setStroke(new BasicStroke(glowLayer * 2));
+                    g2d.drawRoundRect(x - glowLayer, y - glowLayer,
+                            buttonSize + glowLayer * 2, buttonSize + glowLayer * 2, 8, 8);
+                }
+
+                // Inner bright border
+                g2d.setColor(PRAYER_ACTIVE_GLOW);
+                g2d.setStroke(new BasicStroke(2));
+                g2d.drawRoundRect(x, y, buttonSize, buttonSize, 6, 6);
+                g2d.dispose();
+            }
+
             // Draw content
             if (preset.isEmpty()) {
                 drawPlusButton(graphics, x, y, buttonSize);
@@ -241,6 +265,94 @@ public class InventoryUtilsOverlay extends Overlay implements MouseListener {
         int textX = x + (size - fm.stringWidth(text)) / 2;
         int textY = y + (size + fm.getAscent()) / 2 - fm.getDescent();
         graphics.drawString(text, textX, textY);
+    }
+
+    /**
+     * Check if a prayer is currently active.
+     */
+    private boolean isPrayerActive(String prayerName) {
+        if (prayerName == null || prayerName.isEmpty()) {
+            return false;
+        }
+
+        PrayerAPI prayer = getPrayerByName(prayerName.trim().toLowerCase());
+        if (prayer == null) {
+            return false;
+        }
+
+        try {
+            return prayer.isActive();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Map prayer name to PrayerAPI enum.
+     */
+    private PrayerAPI getPrayerByName(String name) {
+        switch (name) {
+            case "thick skin":
+                return PrayerAPI.THICK_SKIN;
+            case "burst of strength":
+                return PrayerAPI.BURST_OF_STRENGTH;
+            case "clarity of thought":
+                return PrayerAPI.CLARITY_OF_THOUGHT;
+            case "sharp eye":
+                return PrayerAPI.SHARP_EYE;
+            case "mystic will":
+                return PrayerAPI.MYSTIC_WILL;
+            case "rock skin":
+                return PrayerAPI.ROCK_SKIN;
+            case "superhuman strength":
+                return PrayerAPI.SUPERHUMAN_STRENGTH;
+            case "improved reflexes":
+                return PrayerAPI.IMPROVED_REFLEXES;
+            case "rapid restore":
+                return PrayerAPI.RAPID_RESTORE;
+            case "rapid heal":
+                return PrayerAPI.RAPID_HEAL;
+            case "protect item":
+                return PrayerAPI.PROTECT_ITEM;
+            case "hawk eye":
+                return PrayerAPI.HAWK_EYE;
+            case "mystic lore":
+                return PrayerAPI.MYSTIC_LORE;
+            case "steel skin":
+                return PrayerAPI.STEEL_SKIN;
+            case "ultimate strength":
+                return PrayerAPI.ULTIMATE_STRENGTH;
+            case "incredible reflexes":
+                return PrayerAPI.INCREDIBLE_REFLEXES;
+            case "protect from magic":
+                return PrayerAPI.PROTECT_FROM_MAGIC;
+            case "protect from missiles":
+                return PrayerAPI.PROTECT_FROM_MISSILES;
+            case "protect from melee":
+                return PrayerAPI.PROTECT_FROM_MELEE;
+            case "eagle eye":
+                return PrayerAPI.EAGLE_EYE;
+            case "mystic might":
+                return PrayerAPI.MYSTIC_MIGHT;
+            case "retribution":
+                return PrayerAPI.RETRIBUTION;
+            case "redemption":
+                return PrayerAPI.REDEMPTION;
+            case "smite":
+                return PrayerAPI.SMITE;
+            case "preserve":
+                return PrayerAPI.PRESERVE;
+            case "chivalry":
+                return PrayerAPI.CHIVALRY;
+            case "piety":
+                return PrayerAPI.PIETY;
+            case "rigour":
+                return PrayerAPI.RIGOUR;
+            case "augury":
+                return PrayerAPI.AUGURY;
+            default:
+                return null;
+        }
     }
 
     private void executePreset(ButtonPreset preset) {
