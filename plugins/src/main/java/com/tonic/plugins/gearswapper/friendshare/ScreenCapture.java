@@ -14,8 +14,8 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Captures the RuneLite game screen using Robot directly on the full screen,
- * then crops to the window bounds.
+ * Captures the RuneLite game screen.
+ * Uses Canvas.paint() to capture game content directly.
  */
 @Singleton
 public class ScreenCapture {
@@ -32,6 +32,7 @@ public class ScreenCapture {
 
     private FrameCallback callback;
     private int framesSent = 0;
+    private boolean usePaintMethod = true; // Start with paint method
 
     @Inject
     public ScreenCapture(Client client) {
@@ -49,13 +50,9 @@ public class ScreenCapture {
     public void startCapture(FrameCallback callback) {
         this.callback = callback;
         this.framesSent = 0;
+        this.usePaintMethod = true;
 
-        System.out.println("[FriendShare] Starting capture...");
-
-        if (robot == null) {
-            System.err.println("[FriendShare] Robot is null!");
-            return;
-        }
+        System.out.println("[FriendShare] Starting capture using Canvas.paint method...");
 
         if (executor == null) {
             executor = Executors.newSingleThreadScheduledExecutor();
@@ -88,43 +85,91 @@ public class ScreenCapture {
 
         try {
             BufferedImage capture = null;
-
-            // Method 1: Try to capture from game canvas location
             Canvas canvas = client.getCanvas();
-            if (canvas != null && canvas.isShowing()) {
+
+            // Method 1: Use Canvas.paint() to draw game content directly
+            if (usePaintMethod && canvas != null && canvas.isShowing()) {
                 try {
-                    Point loc = canvas.getLocationOnScreen();
                     int w = canvas.getWidth();
                     int h = canvas.getHeight();
 
                     if (w > 50 && h > 50) {
-                        Rectangle bounds = new Rectangle(loc.x, loc.y, w, h);
-                        capture = robot.createScreenCapture(bounds);
+                        capture = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+                        Graphics2D g = capture.createGraphics();
 
+                        // Paint the canvas content
+                        canvas.paint(g);
+                        g.dispose();
+
+                        // Check if paint worked
                         if (framesSent == 0) {
-                            System.out.println("[FriendShare] Captured canvas at " + loc + " size=" + w + "x" + h);
+                            boolean black = isImageBlack(capture);
+                            System.out.println("[FriendShare] Paint method: " + w + "x" + h + ", isBlack=" + black);
+                            if (black) {
+                                System.out.println("[FriendShare] Paint method produced black, trying printAll...");
+                                // Try printAll instead
+                                capture = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+                                g = capture.createGraphics();
+                                canvas.printAll(g);
+                                g.dispose();
+
+                                black = isImageBlack(capture);
+                                System.out.println("[FriendShare] printAll method: isBlack=" + black);
+                            }
                         }
                     }
                 } catch (Exception e) {
                     if (framesSent == 0) {
-                        System.err.println("[FriendShare] Canvas capture failed: " + e.getMessage());
+                        System.err.println("[FriendShare] Canvas paint failed: " + e.getMessage());
                     }
                 }
             }
 
-            // Method 2: Fallback to full window
-            if (capture == null || isImageBlack(capture)) {
+            // Method 2: Try Robot on window container if paint failed
+            if ((capture == null || isImageBlack(capture)) && robot != null) {
                 Window window = findGameWindow();
                 if (window != null) {
                     try {
-                        Point loc = window.getLocationOnScreen();
-                        int w = window.getWidth();
-                        int h = window.getHeight();
-                        Rectangle bounds = new Rectangle(loc.x, loc.y, w, h);
-                        capture = robot.createScreenCapture(bounds);
+                        // Try the window's content pane
+                        Container container = null;
+                        if (window instanceof Frame) {
+                            Component[] components = window.getComponents();
+                            for (Component comp : components) {
+                                if (comp instanceof Container && comp.getWidth() > 100) {
+                                    container = (Container) comp;
+                                    break;
+                                }
+                            }
+                        }
 
-                        if (framesSent == 0) {
-                            System.out.println("[FriendShare] Captured window at " + loc + " size=" + w + "x" + h);
+                        if (container != null && container.isShowing()) {
+                            int w = container.getWidth();
+                            int h = container.getHeight();
+                            capture = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+                            Graphics2D g = capture.createGraphics();
+                            container.printAll(g);
+                            g.dispose();
+
+                            if (framesSent == 0) {
+                                boolean black = isImageBlack(capture);
+                                System.out.println(
+                                        "[FriendShare] Container printAll: " + w + "x" + h + ", isBlack=" + black);
+                            }
+                        }
+
+                        // Last resort: Robot screen capture
+                        if (capture == null || isImageBlack(capture)) {
+                            Point loc = window.getLocationOnScreen();
+                            int w = window.getWidth();
+                            int h = window.getHeight();
+                            Rectangle bounds = new Rectangle(loc.x, loc.y, w, h);
+                            capture = robot.createScreenCapture(bounds);
+
+                            if (framesSent == 0) {
+                                boolean black = isImageBlack(capture);
+                                System.out
+                                        .println("[FriendShare] Robot capture: " + w + "x" + h + ", isBlack=" + black);
+                            }
                         }
                     } catch (Exception e) {
                         if (framesSent == 0) {
@@ -135,17 +180,7 @@ public class ScreenCapture {
             }
 
             if (capture == null) {
-                if (framesSent == 0) {
-                    System.err.println("[FriendShare] No capture available");
-                }
                 return;
-            }
-
-            // Debug: check if captured image is black
-            if (framesSent == 0) {
-                boolean black = isImageBlack(capture);
-                System.out.println("[FriendShare] First capture: " + capture.getWidth() + "x" + capture.getHeight() +
-                        ", isBlack=" + black);
             }
 
             // Scale down if needed
@@ -198,7 +233,6 @@ public class ScreenCapture {
             }
         }
 
-        // Fallback to largest
         Frame largest = null;
         int maxArea = 0;
         for (Frame frame : Frame.getFrames()) {
