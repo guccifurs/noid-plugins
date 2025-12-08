@@ -121,7 +121,14 @@ public class ScriptEditorIDE extends JPanel {
         add(editorPanel, BorderLayout.CENTER);
         add(bottomPanel, BorderLayout.SOUTH);
 
-        // Setup event handlers
+        // Debounce timer for highlighting - MUST be created BEFORE event handlers
+        highlightTimer = new javax.swing.Timer(150, e -> {
+            refreshAll();
+            highlightTimer.stop();
+        });
+        highlightTimer.setRepeats(false);
+
+        // Setup event handlers (after timer is created)
         setupEventHandlers();
 
         // Set initial content
@@ -129,13 +136,6 @@ public class ScriptEditorIDE extends JPanel {
             editor.setText(initialScript);
             SwingUtilities.invokeLater(this::refreshAll);
         }
-
-        // Debounce timer for highlighting
-        highlightTimer = new javax.swing.Timer(150, e -> {
-            refreshAll();
-            highlightTimer.stop();
-        });
-        highlightTimer.setRepeats(false);
     }
 
     private JPanel createToolbar() {
