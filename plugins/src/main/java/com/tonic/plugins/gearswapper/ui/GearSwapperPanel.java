@@ -302,7 +302,7 @@ public class GearSwapperPanel extends PluginPanel {
      * Build triggers section with actual trigger panel (not placeholder)
      */
     private JPanel buildTriggersSectionWithPanel() {
-        final CollapsiblePanel triggersPanel = new CollapsiblePanel("⚡ Triggers");
+        final CollapsiblePanel triggersPanel = new CollapsiblePanel("Triggers");
         triggersPanel.setExpanded(true); // Start expanded
 
         JPanel triggersContentPanel = new JPanel();
@@ -315,7 +315,7 @@ public class GearSwapperPanel extends PluginPanel {
             logger.info("[Gear Swapper] Added actual trigger panel to triggers section");
         } else {
             // Fallback to placeholder (shouldn't happen now)
-            JLabel placeholder = new JLabel("🎯 Initializing trigger system...");
+            JLabel placeholder = new JLabel("Initializing trigger system...");
             placeholder.setFont(new Font("Whitney", Font.ITALIC, 12));
             placeholder.setForeground(new Color(150, 150, 150));
             placeholder.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -371,7 +371,7 @@ public class GearSwapperPanel extends PluginPanel {
             }
         });
 
-        JButton scriptBtn = new JButton("📝");
+        JButton scriptBtn = new JButton("Edit");
         scriptBtn.setBackground(Theme.PRIMARY);
         scriptBtn.setForeground(Color.WHITE);
         scriptBtn.setFocusPainted(false);
@@ -703,7 +703,7 @@ public class GearSwapperPanel extends PluginPanel {
             heatmapPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
 
             // Title row
-            JLabel titleLabel = new JLabel("🔥 Click Heatmap (Anti-Ban)");
+            JLabel titleLabel = new JLabel("Click Heatmap (Anti-Ban)");
             titleLabel.setFont(new Font("Whitney", Font.BOLD, 12));
             titleLabel.setForeground(new Color(255, 152, 0));
             titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
@@ -1147,7 +1147,7 @@ public class GearSwapperPanel extends PluginPanel {
     }
 
     private JPanel buildLoadoutsSection() {
-        final CollapsiblePanel loadoutsPanel = new CollapsiblePanel("🎯 Loadouts");
+        final CollapsiblePanel loadoutsPanel = new CollapsiblePanel("Loadouts");
         loadoutsPanel.setExpanded(true);
 
         loadoutsContentPanel = new JPanel();
@@ -1161,7 +1161,7 @@ public class GearSwapperPanel extends PluginPanel {
     }
 
     private JPanel buildTriggersSection() {
-        final CollapsiblePanel triggersPanel = new CollapsiblePanel("⚡ Triggers");
+        final CollapsiblePanel triggersPanel = new CollapsiblePanel("Triggers");
         triggersPanel.setExpanded(false);
 
         JPanel triggersContentPanel = new JPanel();
@@ -1169,7 +1169,7 @@ public class GearSwapperPanel extends PluginPanel {
         triggersContentPanel.setOpaque(false);
 
         // Add placeholder initially - trigger panel will be added when plugin is set
-        JLabel placeholder = new JLabel("🎯 Initializing trigger system...");
+        JLabel placeholder = new JLabel("Initializing trigger system...");
         placeholder.setFont(new Font("Whitney", Font.ITALIC, 12));
         placeholder.setForeground(new Color(150, 150, 150));
         placeholder.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -1202,7 +1202,7 @@ public class GearSwapperPanel extends PluginPanel {
                 });
 
         // Add loadout button
-        JButton addBtn = new JButton("➕ Add New Loadout");
+        JButton addBtn = new JButton("+ Add New Loadout");
         addBtn.setBackground(new Color(76, 175, 80));
         addBtn.setForeground(Color.WHITE);
         addBtn.setFocusPainted(false);
@@ -1249,7 +1249,7 @@ public class GearSwapperPanel extends PluginPanel {
         titleLabel.setForeground(Theme.TEXT_LINK); // Use Link/Primary color for title
         titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JButton deleteBtn = new JButton("🗑️");
+        JButton deleteBtn = new JButton("X");
         deleteBtn.setBackground(Theme.DANGER);
         deleteBtn.setForeground(Color.WHITE);
         deleteBtn.setFocusPainted(false);
@@ -1260,7 +1260,7 @@ public class GearSwapperPanel extends PluginPanel {
         deleteBtn.setBorder(BorderFactory.createLineBorder(Theme.DANGER.darker()));
         deleteBtn.addActionListener(e -> deleteLoadout(loadoutNum));
 
-        JButton copyBtn = new JButton("📋");
+        JButton copyBtn = new JButton("Copy");
         copyBtn.setBackground(Theme.SUCCESS);
         copyBtn.setForeground(Color.WHITE);
         copyBtn.setFocusPainted(false);
@@ -1275,7 +1275,7 @@ public class GearSwapperPanel extends PluginPanel {
         deleteButtons.put(deleteBtn, loadoutNum);
 
         // Script editor button
-        JButton scriptBtn = new JButton("📝");
+        JButton scriptBtn = new JButton("Edit");
         scriptBtn.setBackground(Theme.PRIMARY);
         scriptBtn.setForeground(Color.WHITE);
         scriptBtn.setFocusPainted(false);
@@ -1401,7 +1401,7 @@ public class GearSwapperPanel extends PluginPanel {
         });
 
         // Right side - Keybind
-        JButton keybindBtn = new JButton("🔗 " + (data.keybind != null ? data.keybind.toString() : "Set Keybind"));
+        JButton keybindBtn = new JButton("[" + (data.keybind != null ? data.keybind.toString() : "Set Key") + "]");
         keybindBtn.setBackground(Theme.SURFACE_HOVER); // Neutral/Secondary
         keybindBtn.setForeground(Theme.TEXT_PRIMARY);
         keybindBtn.setFocusPainted(false);
@@ -2421,7 +2421,7 @@ public class GearSwapperPanel extends PluginPanel {
         capturingButton = button;
 
         // Update button to show capturing state
-        button.setText("🔗 Press any key...");
+        button.setText("[Press any key...]");
         button.setBackground(new Color(255, 152, 0)); // Orange for capturing state
 
         // Request focus to ensure key events are captured
@@ -2444,7 +2444,7 @@ public class GearSwapperPanel extends PluginPanel {
 
         if (data != null) {
             data.keybind = keybind;
-            capturingButton.setText("🔗 " + keybind.toString());
+            capturingButton.setText("[" + keybind.toString() + "]");
             saveLoadoutToConfig(capturingLoadoutNum);
             // Notify plugin so it can refresh hotkeys immediately
             if (plugin != null) {
@@ -2459,8 +2459,8 @@ public class GearSwapperPanel extends PluginPanel {
     private void cancelKeybindCapture() {
         if (capturingButton != null && capturingLoadoutNum > 0) {
             LoadoutData data = loadoutData.get(capturingLoadoutNum);
-            String displayText = data != null && data.keybind != null ? "🔗 " + data.keybind.toString()
-                    : "🔗 Set Keybind";
+            String displayText = data != null && data.keybind != null ? "[" + data.keybind.toString() + "]"
+                    : "[Set Key]";
             capturingButton.setText(displayText);
             capturingButton.setBackground(new Color(76, 175, 80)); // Green
         }
@@ -3307,10 +3307,10 @@ public class GearSwapperPanel extends PluginPanel {
             renderCategory("🛠️ Utility & Logic", 12, 19);
             renderCategory("⚖️ Conditions - Comparison", 19, 23);
             renderCategory("❤️ Conditions - Status", 23, 28);
-            renderCategory("🎯 Conditions - Target", 28, 34);
+            renderCategory("Conditions - Target", 28, 34);
             renderCategory("🎒 Conditions - Inventory", 34, 36);
             renderCategory("🌍 Conditions - Environment", 36, 43);
-            renderCategory("📝 Syntax & Operators", 43, allEntries.size());
+            renderCategory("Syntax & Operators", 43, allEntries.size());
             contentPanel.revalidate();
             contentPanel.repaint();
         }
