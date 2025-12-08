@@ -27,7 +27,6 @@ import java.util.concurrent.Executors;
 public class InventoryUtilsButtonManager {
     private static final String CONFIG_DIR = System.getProperty("user.home") + "/.runelite/gearswapper";
     private static final String CONFIG_FILE = CONFIG_DIR + "/inventory_utils_buttons.json";
-    private static final String WIKI_BASE_URL = "https://oldschool.runescape.wiki/images/";
     private static final int MAX_BUTTONS = 10;
 
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -129,6 +128,12 @@ public class InventoryUtilsButtonManager {
             return;
         }
 
+        // Special handling for prayers - load from local resources
+        if (preset.type == PresetType.PRAYER && (preset.customIconUrl == null || preset.customIconUrl.isEmpty())) {
+            loadPrayerIcon(preset);
+            return;
+        }
+
         preset.iconLoading = true;
 
         iconLoader.submit(() -> {
@@ -161,27 +166,49 @@ public class InventoryUtilsButtonManager {
         });
     }
 
+    private void loadPrayerIcon(ButtonPreset preset) {
+        String resourcePath = getPrayerResourcePath(preset.value);
+        if (resourcePath == null)
+            return;
+
+        try {
+            // Check cache first
+            if (iconCache.containsKey(resourcePath)) {
+                preset.cachedIcon = iconCache.get(resourcePath);
+                return;
+            }
+
+            // Load from resource
+            InputStream is = getClass().getResourceAsStream(resourcePath);
+            if (is != null) {
+                BufferedImage image = ImageIO.read(is);
+                if (image != null) {
+                    iconCache.put(resourcePath, image);
+                    preset.cachedIcon = image;
+                }
+            } else {
+                Logger.warn("[InventoryUtils] Prayer icon resource not found: " + resourcePath);
+            }
+        } catch (Exception e) {
+            Logger.error("[InventoryUtils] Error loading prayer icon: " + e.getMessage());
+        }
+    }
+
     private String getIconUrl(ButtonPreset preset) {
         if (preset.customIconUrl != null && !preset.customIconUrl.isEmpty()) {
             return preset.customIconUrl;
         }
-
-        if (preset.type == PresetType.PRAYER) {
-            return getPrayerIconUrl(preset.value);
-        }
-
         return null;
     }
 
-    private String getPrayerIconUrl(String prayerName) {
+    private String getPrayerResourcePath(String prayerName) {
         if (prayerName == null || prayerName.isEmpty())
             return null;
 
-        String formatted = prayerName.trim()
-                .replace(" ", "_")
-                .replace("'", "%27");
+        String filename = prayerName.trim().toLowerCase()
+                .replace(" ", "_").replace("'", "") + ".png";
 
-        return WIKI_BASE_URL + formatted + ".png";
+        return "/com/tonic/plugins/gearswapper/prayers/" + filename;
     }
 
     public static String[] getAllPrayerNames() {
