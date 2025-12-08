@@ -308,6 +308,11 @@ public class GearSwapperPlugin extends Plugin {
     private int mouseCircleCenterY = -1;
     private int mouseCircleRadius = 80;
 
+    // Prayer activation cooldown to prevent race condition when spamming hotkeys
+    // Key: prayer enum, Value: tick count when clicked
+    private final java.util.Map<PrayerAPI, Integer> prayerClickCooldowns = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final int PRAYER_COOLDOWN_TICKS = 2; // Skip if clicked within last 2 ticks
+
     // Recent animation tracking for debug overlay
     private final java.util.Deque<AnimationDebugEntry> recentAnimations = new java.util.ArrayDeque<>();
 
@@ -3212,6 +3217,24 @@ public class GearSwapperPlugin extends Plugin {
                         Logger.norm("[Gear Swapper] Unknown prayer '" + prayerName + "', skipping.");
                         continue;
                     }
+
+                    // Check cooldown to prevent race condition when spamming
+                    int currentTick = client != null ? client.getTickCount() : 0;
+                    Integer lastClickedTick = prayerClickCooldowns.get(prayer);
+                    if (lastClickedTick != null && (currentTick - lastClickedTick) < PRAYER_COOLDOWN_TICKS) {
+                        Logger.norm("[Gear Swapper] Skipping prayer '" + prayerName + "' - cooldown active (" +
+                                (currentTick - lastClickedTick) + " ticks since last click)");
+                        continue;
+                    }
+
+                    // Check if already active - skip if so
+                    if (prayer.isActive()) {
+                        Logger.norm("[Gear Swapper] Prayer '" + prayerName + "' already active, skipping");
+                        continue;
+                    }
+
+                    // Record this click and proceed
+                    prayerClickCooldowns.put(prayer, currentTick);
 
                     // First try normal PrayerAPI.turnOn() behaviour
                     prayer.turnOn();
