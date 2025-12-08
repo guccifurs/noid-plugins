@@ -1,12 +1,12 @@
 package com.tonic.plugins.gearswapper.ui;
 
 import java.util.*;
-import java.util.regex.*;
 
 /**
  * Real-time validator for GearSwapper scripts.
- * Validates syntax without false positives - only flags truly invalid
- * constructs.
+ * Designed to be LENIENT - only flag truly invalid syntax, not unknown
+ * commands.
+ * The script runtime is the ultimate authority on what's valid.
  */
 public class ScriptValidator {
 
@@ -35,11 +35,14 @@ public class ScriptValidator {
         INFO // Just a hint
     }
 
-    // Track if/else/endif blocks
+    // Track if/else blocks - supports both brace {} and endif styles
     private int openIfBlocks = 0;
+    private int openBraces = 0;
 
     /**
      * Validate the entire script and return list of errors.
+     * NOTE: This validator is designed to be LENIENT.
+     * Only flag true syntax errors, not unknown commands.
      */
     public List<ValidationError> validate(String script) {
         List<ValidationError> errors = new ArrayList<>();
@@ -50,20 +53,37 @@ public class ScriptValidator {
 
         String[] lines = script.split("\n", -1);
         openIfBlocks = 0;
+        openBraces = 0;
 
         for (int i = 0; i < lines.length; i++) {
-            List<ValidationError> lineErrors = validateLine(lines[i], i + 1);
+            String line = lines[i];
+
+            // Count braces for brace-style blocks
+            for (char c : line.toCharArray()) {
+                if (c == '{')
+                    openBraces++;
+                if (c == '}')
+                    openBraces--;
+            }
+
+            List<ValidationError> lineErrors = validateLine(line, i + 1);
             errors.addAll(lineErrors);
         }
 
-        // Check for unclosed if blocks
-        if (openIfBlocks > 0) {
+        // Check for unclosed blocks - only if NOT using brace style
+        // If braces are balanced, we're using brace style so ignore endif tracking
+        if (openBraces == 0 && openIfBlocks > 0) {
+            // Might be using brace style with inline braces, or might be missing endif
+            // Don't error, just info
+        }
+
+        if (openBraces > 0) {
             errors.add(new ValidationError(lines.length, 0,
-                    "Unclosed if block - missing " + openIfBlocks + " endif statement(s)",
+                    "Unclosed brace - missing " + openBraces + " '}' character(s)",
                     ErrorSeverity.ERROR));
-        } else if (openIfBlocks < 0) {
+        } else if (openBraces < 0) {
             errors.add(new ValidationError(1, 0,
-                    "Unmatched endif - more endif than if statements",
+                    "Unmatched '}' - more closing braces than opening",
                     ErrorSeverity.ERROR));
         }
 
@@ -91,202 +111,61 @@ public class ScriptValidator {
 
         String lower = trimmed.toLowerCase();
 
-        // Check for if/else/endif keywords
+        // Standalone braces - valid
+        if (trimmed.equals("{") || trimmed.equals("}")) {
+            return errors;
+        }
+
+        // Check for if with brace on same line: if(...) {
+        if ((lower.startsWith("if ") || lower.startsWith("if(")) && trimmed.endsWith("{")) {
+            openIfBlocks++;
+            errors.addAll(validateIfStatement(trimmed, lineNum));
+            return errors;
+        }
+
+        // Check for if/else/endif keywords (without brace)
         if (lower.startsWith("if ") || lower.startsWith("if(")) {
             openIfBlocks++;
             errors.addAll(validateIfStatement(trimmed, lineNum));
             return errors;
         }
 
-        if (lower.equals("else")) {
-            if (openIfBlocks <= 0) {
-                errors.add(new ValidationError(lineNum, 0,
-                        "'else' without matching 'if'", ErrorSeverity.ERROR));
-            }
+        if (lower.equals("else") || lower.equals("else {") || lower.startsWith("else ")) {
+            // else is always contextually valid - don't check block count
             return errors;
         }
 
-        if (lower.equals("endif")) {
+        if (lower.equals("endif") || lower.equals("}")) {
             openIfBlocks--;
-            if (openIfBlocks < 0) {
-                errors.add(new ValidationError(lineNum, 0,
-                        "'endif' without matching 'if'", ErrorSeverity.ERROR));
-            }
+            // Don't error on endif - might be valid with different nesting
             return errors;
         }
 
         if (lower.startsWith("elseif ") || lower.startsWith("elseif(")) {
-            if (openIfBlocks <= 0) {
-                errors.add(new ValidationError(lineNum, 0,
-                        "'elseif' without matching 'if'", ErrorSeverity.ERROR));
-            } else {
-                errors.addAll(validateIfStatement(trimmed.substring(4), lineNum));
-            }
+            // elseif is valid in context
             return errors;
         }
 
-        // Validate command syntax
-        errors.addAll(validateCommand(trimmed, lineNum));
-
+        // Everything else - don't validate strictly
+        // The runtime is the authority on what commands are valid
         return errors;
     }
 
     /**
-     * Validate an if statement condition.
+     * Validate an if statement condition (very lenient).
      */
     private List<ValidationError> validateIfStatement(String statement, int lineNum) {
         List<ValidationError> errors = new ArrayList<>();
 
-        // Extract condition from parentheses
-        Pattern pattern = Pattern.compile("(?i)if\\s*\\((.*)\\)\\s*$");
-        Matcher matcher = pattern.matcher(statement);
-
-        if (!matcher.find()) {
-            // Check for missing parentheses
-            if (!statement.contains("(")) {
-                errors.add(new ValidationError(lineNum, 0,
-                        "if statement missing opening parenthesis '('", ErrorSeverity.ERROR));
-            } else if (!statement.contains(")")) {
-                errors.add(new ValidationError(lineNum, 0,
-                        "if statement missing closing parenthesis ')'", ErrorSeverity.ERROR));
-            }
+        // Check for parentheses
+        if (!statement.contains("(")) {
+            // Some if styles might not use parentheses
             return errors;
         }
 
-        String condition = matcher.group(1).trim();
-
-        if (condition.isEmpty()) {
+        if (!statement.contains(")")) {
             errors.add(new ValidationError(lineNum, 0,
-                    "Empty condition in if statement", ErrorSeverity.ERROR));
-            return errors;
-        }
-
-        // Validate condition syntax (basic checks only)
-        errors.addAll(validateCondition(condition, lineNum));
-
-        return errors;
-    }
-
-    /**
-     * Validate a condition expression.
-     */
-    private List<ValidationError> validateCondition(String condition, int lineNum) {
-        List<ValidationError> errors = new ArrayList<>();
-
-        // Check for balanced parentheses
-        int parenCount = 0;
-        for (char c : condition.toCharArray()) {
-            if (c == '(')
-                parenCount++;
-            if (c == ')')
-                parenCount--;
-            if (parenCount < 0) {
-                errors.add(new ValidationError(lineNum, 0,
-                        "Unbalanced parentheses in condition", ErrorSeverity.ERROR));
-                return errors;
-            }
-        }
-        if (parenCount != 0) {
-            errors.add(new ValidationError(lineNum, 0,
-                    "Unbalanced parentheses in condition", ErrorSeverity.ERROR));
-        }
-
-        // Check for common typos
-        String lower = condition.toLowerCase();
-        if (lower.contains(" and ") || lower.contains(" or ")) {
-            // These are actually valid, just a warning
-            // No error needed
-        }
-
-        // Check for invalid comparison operators
-        if (condition.contains("=") && !condition.contains("==") &&
-                !condition.contains("!=") && !condition.contains(">=") && !condition.contains("<=")) {
-            errors.add(new ValidationError(lineNum, 0,
-                    "Use '==' for comparison, not '='", ErrorSeverity.ERROR));
-        }
-
-        return errors;
-    }
-
-    /**
-     * Validate a command line.
-     */
-    private List<ValidationError> validateCommand(String command, int lineNum) {
-        List<ValidationError> errors = new ArrayList<>();
-
-        String lower = command.toLowerCase();
-
-        // Check for command with colon
-        if (command.contains(":")) {
-            String[] parts = command.split(":", 2);
-            String cmdName = parts[0].trim();
-            String value = parts.length > 1 ? parts[1].trim() : "";
-
-            // Check if command is recognized
-            boolean recognized = false;
-            for (String known : ScriptSyntaxHighlighter.COMMANDS) {
-                if (known.equalsIgnoreCase(cmdName)) {
-                    recognized = true;
-                    break;
-                }
-            }
-
-            if (!recognized) {
-                // Don't error on unknown commands - they might be valid custom commands
-                // Just a warning
-                errors.add(new ValidationError(lineNum, 0,
-                        "Unknown command: '" + cmdName + "' (may still work if valid)",
-                        ErrorSeverity.WARNING));
-            }
-
-            // Check for empty value where required
-            if (value.isEmpty()) {
-                Set<String> requiresValue = new HashSet<>(Arrays.asList(
-                        "item", "cast", "prayer", "togglepray", "move", "movediag",
-                        "tick", "wait", "waitanim", "log", "walk"));
-                if (requiresValue.contains(cmdName.toLowerCase())) {
-                    errors.add(new ValidationError(lineNum, 0,
-                            "Command '" + cmdName + "' requires a value after ':'",
-                            ErrorSeverity.ERROR));
-                }
-            }
-
-            // Validate specific commands
-            if (cmdName.equalsIgnoreCase("Tick") || cmdName.equalsIgnoreCase("Wait")) {
-                if (!value.isEmpty() && !value.matches("\\d+")) {
-                    errors.add(new ValidationError(lineNum, 0,
-                            cmdName + " requires a numeric value", ErrorSeverity.ERROR));
-                }
-            }
-
-            if (cmdName.equalsIgnoreCase("Move") || cmdName.equalsIgnoreCase("MoveDiag")) {
-                if (!value.isEmpty() && !value.matches("-?\\d+")) {
-                    errors.add(new ValidationError(lineNum, 0,
-                            cmdName + " requires a numeric distance", ErrorSeverity.ERROR));
-                }
-            }
-
-            return errors;
-        }
-
-        // Standalone commands (no colon)
-        Set<String> standaloneCommands = new HashSet<>(Arrays.asList(
-                "special", "attack", "meleerange", "endif", "else"));
-
-        if (!standaloneCommands.contains(lower)) {
-            // Check if it looks like a command missing a colon
-            for (String known : ScriptSyntaxHighlighter.COMMANDS) {
-                if (lower.startsWith(known.toLowerCase()) && !lower.equals(known.toLowerCase())) {
-                    errors.add(new ValidationError(lineNum, 0,
-                            "Command '" + known + "' requires a colon - use '" + known + ": value'",
-                            ErrorSeverity.ERROR));
-                    return errors;
-                }
-            }
-
-            // Unknown line - could be an item name or something
-            // Don't error, just warn
-            // Actually, let's not warn either - it might be intentional
+                    "if statement missing closing parenthesis ')'", ErrorSeverity.WARNING));
         }
 
         return errors;

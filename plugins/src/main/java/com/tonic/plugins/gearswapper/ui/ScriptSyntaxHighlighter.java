@@ -26,13 +26,26 @@ public class ScriptSyntaxHighlighter {
 
     // All recognized commands
     public static final Set<String> COMMANDS = new LinkedHashSet<>(Arrays.asList(
+            // Equipment
             "Item", "Cast", "Prayer", "TogglePray", "Special", "Attack",
+            // Movement
             "Move", "MoveDiag", "Walk", "MeleeRange",
-            "Tick", "Wait", "WaitAnim",
-            "Log", "Npc", "DropAll",
-            "SetMemory", "ClearMemory",
+            // Timing
+            "Tick", "Wait", "WaitAnim", "WaitIfWalking", "WaitIfMoving",
+            // Utility
+            "Log", "Npc", "DropAll", "Object", "Widget",
+            // Memory/State
+            "SetMemory", "ClearMemory", "SetTickTimer",
+            // Targeting
             "Target", "ClearTarget",
-            "RunEnergy", "ToggleRun"));
+            // Run/Energy
+            "RunEnergy", "ToggleRun",
+            // AFK/Random
+            "RandomAfkChance", "AfkChance",
+            // Camera
+            "Camera", "CameraAngle", "CameraZoom",
+            // Inventory
+            "Use", "UseOn", "Drop"));
 
     // Keywords
     public static final Set<String> KEYWORDS = new LinkedHashSet<>(Arrays.asList(
