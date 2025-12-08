@@ -18,11 +18,11 @@ import java.util.concurrent.TimeUnit;
 public class ScreenCapture {
 
     private static final int TARGET_FPS = 10;
-    private static final float JPEG_QUALITY = 0.6f;
+    private static final float JPEG_QUALITY = 0.5f;
     private static final int MAX_WIDTH = 800;
 
     private Robot robot;
-    private Frame runeliteFrame;
+    private Window runeliteWindow;
 
     private ScheduledExecutorService executor;
     private ScheduledFuture<?> captureTask;
@@ -36,35 +36,71 @@ public class ScreenCapture {
         } catch (AWTException e) {
             System.err.println("[FriendShare] Failed to create Robot: " + e.getMessage());
         }
-        // Find RuneLite frame
-        findRuneLiteFrame();
     }
 
     /**
-     * Find the RuneLite window.
+     * Find any visible RuneLite/Noid window.
      */
-    private void findRuneLiteFrame() {
-        for (Frame frame : Frame.getFrames()) {
-            if (frame.isVisible() && frame.getTitle() != null &&
-                    (frame.getTitle().contains("RuneLite") || frame.getTitle().contains("Noid"))) {
-                this.runeliteFrame = frame;
-                break;
+    private Window findRuneLiteWindow() {
+        // Try all windows, not just frames
+        for (Window window : Window.getWindows()) {
+            if (window.isVisible() && window.getWidth() > 100 && window.getHeight() > 100) {
+                String title = "";
+                if (window instanceof Frame) {
+                    title = ((Frame) window).getTitle();
+                } else if (window instanceof Dialog) {
+                    title = ((Dialog) window).getTitle();
+                }
+
+                // Check for RuneLite or Noid in title
+                if (title != null && (title.contains("RuneLite") || title.contains("Noid") ||
+                        title.contains("OSRS") || title.contains("Old School"))) {
+                    System.out.println("[FriendShare] Found window: " + title + " (" + window.getWidth() + "x"
+                            + window.getHeight() + ")");
+                    return window;
+                }
             }
         }
+
+        // Fallback: find largest visible window
+        Window largest = null;
+        int largestArea = 0;
+        for (Window window : Window.getWindows()) {
+            if (window.isVisible() && window instanceof Frame) {
+                int area = window.getWidth() * window.getHeight();
+                if (area > largestArea) {
+                    largestArea = area;
+                    largest = window;
+                }
+            }
+        }
+
+        if (largest != null) {
+            String title = (largest instanceof Frame) ? ((Frame) largest).getTitle() : "Unknown";
+            System.out.println("[FriendShare] Using largest window: " + title + " (" + largest.getWidth() + "x"
+                    + largest.getHeight() + ")");
+        }
+
+        return largest;
     }
 
     /**
      * Start capturing frames.
      */
     public void startCapture(FrameCallback callback) {
-        if (robot == null)
+        if (robot == null) {
+            System.err.println("[FriendShare] Robot is null, cannot capture");
             return;
+        }
 
         this.callback = callback;
 
-        // Find frame if not already found
-        if (runeliteFrame == null || !runeliteFrame.isVisible()) {
-            findRuneLiteFrame();
+        // Find window
+        runeliteWindow = findRuneLiteWindow();
+        if (runeliteWindow == null) {
+            System.err.println("[FriendShare] No suitable window found!");
+        } else {
+            System.out.println("[FriendShare] Will capture window at " + runeliteWindow.getBounds());
         }
 
         if (executor == null) {
@@ -99,11 +135,18 @@ public class ScreenCapture {
         try {
             // Get client window bounds
             Rectangle bounds = getClientBounds();
-            if (bounds == null || bounds.width <= 0 || bounds.height <= 0)
+            if (bounds == null || bounds.width <= 0 || bounds.height <= 0) {
+                System.err.println("[FriendShare] Invalid bounds: " + bounds);
                 return;
+            }
 
-            // Capture screen
+            // Capture screen region
             BufferedImage capture = robot.createScreenCapture(bounds);
+
+            if (capture == null) {
+                System.err.println("[FriendShare] Capture returned null");
+                return;
+            }
 
             // Scale down if needed
             if (capture.getWidth() > MAX_WIDTH) {
@@ -122,10 +165,13 @@ public class ScreenCapture {
             // Compress to JPEG
             byte[] jpegData = compressToJpeg(capture);
 
-            callback.onFrame(jpegData);
+            if (jpegData != null && jpegData.length > 0) {
+                callback.onFrame(jpegData);
+            }
 
         } catch (Exception e) {
             System.err.println("[FriendShare] Capture error: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -133,35 +179,43 @@ public class ScreenCapture {
      * Get the client window bounds.
      */
     private Rectangle getClientBounds() {
-        if (runeliteFrame != null && runeliteFrame.isVisible()) {
-            return runeliteFrame.getBounds();
+        // Re-find window if lost
+        if (runeliteWindow == null || !runeliteWindow.isVisible()) {
+            runeliteWindow = findRuneLiteWindow();
         }
-        // Try to find it again
-        findRuneLiteFrame();
-        if (runeliteFrame != null && runeliteFrame.isVisible()) {
-            return runeliteFrame.getBounds();
+
+        if (runeliteWindow != null && runeliteWindow.isVisible()) {
+            Point loc = runeliteWindow.getLocationOnScreen();
+            Dimension size = runeliteWindow.getSize();
+            return new Rectangle(loc.x, loc.y, size.width, size.height);
         }
+
         return null;
     }
 
     /**
      * Compress image to JPEG bytes.
      */
-    private byte[] compressToJpeg(BufferedImage image) throws Exception {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    private byte[] compressToJpeg(BufferedImage image) {
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        var jpegWriter = ImageIO.getImageWritersByFormatName("jpeg").next();
-        var jpegParams = jpegWriter.getDefaultWriteParam();
-        jpegParams.setCompressionMode(javax.imageio.ImageWriteParam.MODE_EXPLICIT);
-        jpegParams.setCompressionQuality(JPEG_QUALITY);
+            var jpegWriter = ImageIO.getImageWritersByFormatName("jpeg").next();
+            var jpegParams = jpegWriter.getDefaultWriteParam();
+            jpegParams.setCompressionMode(javax.imageio.ImageWriteParam.MODE_EXPLICIT);
+            jpegParams.setCompressionQuality(JPEG_QUALITY);
 
-        var ios = ImageIO.createImageOutputStream(baos);
-        jpegWriter.setOutput(ios);
-        jpegWriter.write(null, new javax.imageio.IIOImage(image, null, null), jpegParams);
-        jpegWriter.dispose();
-        ios.close();
+            var ios = ImageIO.createImageOutputStream(baos);
+            jpegWriter.setOutput(ios);
+            jpegWriter.write(null, new javax.imageio.IIOImage(image, null, null), jpegParams);
+            jpegWriter.dispose();
+            ios.close();
 
-        return baos.toByteArray();
+            return baos.toByteArray();
+        } catch (Exception e) {
+            System.err.println("[FriendShare] JPEG compression failed: " + e.getMessage());
+            return null;
+        }
     }
 
     /**
