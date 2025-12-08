@@ -3,23 +3,23 @@ package com.tonic.plugins.gearswapper.friendshare;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 
 /**
  * Window that displays received screen share frames.
+ * Uses double buffering to prevent flashing.
  */
 public class ScreenViewer extends JFrame {
 
-    private final JLabel imageLabel;
+    private final ImagePanel imagePanel;
     private final JLabel statusLabel;
     private final String peerName;
     private Runnable onClose;
 
     private long lastFrameTime = 0;
     private int frameCount = 0;
+    private int fps = 0;
 
     public ScreenViewer(String peerName) {
         super("Viewing: " + peerName + "'s Screen");
@@ -33,12 +33,10 @@ public class ScreenViewer extends JFrame {
         getContentPane().setBackground(new Color(30, 30, 30));
         setLayout(new BorderLayout());
 
-        // Image display
-        imageLabel = new JLabel();
-        imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        imageLabel.setBackground(Color.BLACK);
-        imageLabel.setOpaque(true);
-        add(imageLabel, BorderLayout.CENTER);
+        // Custom image panel with double buffering
+        imagePanel = new ImagePanel();
+        imagePanel.setBackground(Color.BLACK);
+        add(imagePanel, BorderLayout.CENTER);
 
         // Status bar
         JPanel statusBar = new JPanel(new BorderLayout());
@@ -60,9 +58,9 @@ public class ScreenViewer extends JFrame {
         add(statusBar, BorderLayout.SOUTH);
 
         // Handle window close
-        addWindowListener(new WindowAdapter() {
+        addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
-            public void windowClosing(WindowEvent e) {
+            public void windowClosing(java.awt.event.WindowEvent e) {
                 if (onClose != null) {
                     onClose.run();
                 }
@@ -74,40 +72,28 @@ public class ScreenViewer extends JFrame {
      * Display a received JPEG frame.
      */
     public void displayFrame(byte[] jpegData) {
-        SwingUtilities.invokeLater(() -> {
-            try {
-                BufferedImage image = ImageIO.read(new ByteArrayInputStream(jpegData));
-                if (image != null) {
-                    // Scale to fit
-                    int maxW = imageLabel.getWidth();
-                    int maxH = imageLabel.getHeight();
+        try {
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(jpegData));
+            if (image != null) {
+                imagePanel.setImage(image);
 
-                    if (maxW > 0 && maxH > 0) {
-                        double scale = Math.min((double) maxW / image.getWidth(),
-                                (double) maxH / image.getHeight());
-                        int newW = (int) (image.getWidth() * scale);
-                        int newH = (int) (image.getHeight() * scale);
+                // Update FPS counter
+                frameCount++;
+                long now = System.currentTimeMillis();
+                if (now - lastFrameTime >= 1000) {
+                    fps = frameCount;
+                    frameCount = 0;
+                    lastFrameTime = now;
 
-                        Image scaled = image.getScaledInstance(newW, newH, Image.SCALE_FAST);
-                        imageLabel.setIcon(new ImageIcon(scaled));
-                    } else {
-                        imageLabel.setIcon(new ImageIcon(image));
-                    }
-
-                    // Update FPS counter
-                    frameCount++;
-                    long now = System.currentTimeMillis();
-                    if (now - lastFrameTime >= 1000) {
+                    SwingUtilities.invokeLater(() -> {
                         statusLabel.setText(String.format("Viewing %s | %d FPS | %d KB",
-                                peerName, frameCount, jpegData.length / 1024));
-                        frameCount = 0;
-                        lastFrameTime = now;
-                    }
+                                peerName, fps, jpegData.length / 1024));
+                    });
                 }
-            } catch (Exception e) {
-                // Ignore bad frames
             }
-        });
+        } catch (Exception e) {
+            // Ignore bad frames
+        }
     }
 
     /**
@@ -122,5 +108,75 @@ public class ScreenViewer extends JFrame {
      */
     public void showMessage(String message) {
         statusLabel.setText(message);
+    }
+
+    /**
+     * Custom panel that draws images with double buffering.
+     */
+    private static class ImagePanel extends JPanel {
+        private BufferedImage currentImage;
+        private BufferedImage scaledImage;
+        private int lastWidth = 0;
+        private int lastHeight = 0;
+
+        public ImagePanel() {
+            setDoubleBuffered(true);
+        }
+
+        public void setImage(BufferedImage image) {
+            this.currentImage = image;
+
+            // Only rescale if panel size changed or first image
+            int panelW = getWidth();
+            int panelH = getHeight();
+
+            if (panelW > 0 && panelH > 0 && image != null) {
+                // Calculate scaled size maintaining aspect ratio
+                double scale = Math.min((double) panelW / image.getWidth(),
+                        (double) panelH / image.getHeight());
+                int newW = (int) (image.getWidth() * scale);
+                int newH = (int) (image.getHeight() * scale);
+
+                // Only create new scaled image if size changed significantly
+                if (scaledImage == null ||
+                        Math.abs(lastWidth - newW) > 5 ||
+                        Math.abs(lastHeight - newH) > 5) {
+
+                    scaledImage = new BufferedImage(newW, newH, BufferedImage.TYPE_INT_RGB);
+                    lastWidth = newW;
+                    lastHeight = newH;
+                }
+
+                // Draw to scaled buffer
+                Graphics2D g = scaledImage.createGraphics();
+                g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                        RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                g.drawImage(image, 0, 0, newW, newH, null);
+                g.dispose();
+            }
+
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+
+            if (scaledImage != null) {
+                // Center the image
+                int x = (getWidth() - scaledImage.getWidth()) / 2;
+                int y = (getHeight() - scaledImage.getHeight()) / 2;
+                g.drawImage(scaledImage, x, y, null);
+            } else {
+                // Show waiting message
+                g.setColor(Color.GRAY);
+                g.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+                String msg = "Waiting for frames...";
+                FontMetrics fm = g.getFontMetrics();
+                int x = (getWidth() - fm.stringWidth(msg)) / 2;
+                int y = getHeight() / 2;
+                g.drawString(msg, x, y);
+            }
+        }
     }
 }
