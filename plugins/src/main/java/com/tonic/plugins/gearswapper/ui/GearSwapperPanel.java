@@ -1458,73 +1458,81 @@ public class GearSwapperPanel extends PluginPanel {
             return;
         }
 
-        JFrame frame = new JFrame("Loadout " + loadoutNum + " - Script Editor");
-        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        frame.setSize(800, 650);
-        frame.setLocationRelativeTo(this);
+        try {
+            JFrame frame = new JFrame("Loadout " + loadoutNum + " - Script Editor");
+            frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            frame.setSize(800, 650);
+            frame.setLocationRelativeTo(this);
 
-        // Use new IDE-like editor
-        ScriptEditorIDE ideEditor = new ScriptEditorIDE(data.items != null ? data.items : "");
+            // Use new IDE-like editor
+            ScriptEditorIDE ideEditor = new ScriptEditorIDE(data.items != null ? data.items : "");
 
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(new Color(30, 30, 30));
+            JPanel mainPanel = new JPanel(new BorderLayout());
+            mainPanel.setBackground(new Color(30, 30, 30));
 
-        // Header
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(new Color(37, 37, 38));
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+            // Header
+            JPanel headerPanel = new JPanel(new BorderLayout());
+            headerPanel.setBackground(new Color(37, 37, 38));
+            headerPanel.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
 
-        JLabel header = new JLabel("Editing: " + data.name + " (Loadout " + loadoutNum + ")");
-        header.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        header.setForeground(new Color(212, 212, 212));
-        headerPanel.add(header, BorderLayout.WEST);
+            JLabel header = new JLabel("Editing: " + data.name + " (Loadout " + loadoutNum + ")");
+            header.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            header.setForeground(new Color(212, 212, 212));
+            headerPanel.add(header, BorderLayout.WEST);
 
-        mainPanel.add(headerPanel, BorderLayout.NORTH);
-        mainPanel.add(ideEditor, BorderLayout.CENTER);
+            mainPanel.add(headerPanel, BorderLayout.NORTH);
+            mainPanel.add(ideEditor, BorderLayout.CENTER);
 
-        // Bottom panel with save button
-        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
-        bottomPanel.setBackground(new Color(37, 37, 38));
+            // Bottom panel with save button
+            JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
+            bottomPanel.setBackground(new Color(37, 37, 38));
 
-        JButton saveBtn = new JButton("Save & Close");
-        saveBtn.setBackground(new Color(76, 175, 80));
-        saveBtn.setForeground(Color.WHITE);
-        saveBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        saveBtn.setFocusPainted(false);
-        saveBtn.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
-        saveBtn.addActionListener(e -> {
-            String newScript = ideEditor.getScript();
-            data.items = newScript;
-            if (inlineCommandsArea != null) {
-                inlineCommandsArea.setText(newScript);
-                updateTextAreaHeight(inlineCommandsArea);
-            }
-            saveLoadoutToConfig(loadoutNum);
-            frame.dispose();
-        });
+            JButton saveBtn = new JButton("Save & Close");
+            saveBtn.setBackground(new Color(76, 175, 80));
+            saveBtn.setForeground(Color.WHITE);
+            saveBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            saveBtn.setFocusPainted(false);
+            saveBtn.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
+            saveBtn.addActionListener(e -> {
+                String newScript = ideEditor.getScript();
+                data.items = newScript;
+                if (inlineCommandsArea != null) {
+                    inlineCommandsArea.setText(newScript);
+                    updateTextAreaHeight(inlineCommandsArea);
+                }
+                saveLoadoutToConfig(loadoutNum);
+                frame.dispose();
+            });
 
-        JButton cancelBtn = new JButton("Cancel");
-        cancelBtn.setBackground(new Color(97, 97, 97));
-        cancelBtn.setForeground(Color.WHITE);
-        cancelBtn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        cancelBtn.setFocusPainted(false);
-        cancelBtn.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
-        cancelBtn.addActionListener(e -> frame.dispose());
+            JButton cancelBtn = new JButton("Cancel");
+            cancelBtn.setBackground(new Color(97, 97, 97));
+            cancelBtn.setForeground(Color.WHITE);
+            cancelBtn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            cancelBtn.setFocusPainted(false);
+            cancelBtn.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
+            cancelBtn.addActionListener(e -> frame.dispose());
 
-        bottomPanel.add(cancelBtn);
-        bottomPanel.add(saveBtn);
-        mainPanel.add(bottomPanel, BorderLayout.SOUTH);
+            bottomPanel.add(cancelBtn);
+            bottomPanel.add(saveBtn);
+            mainPanel.add(bottomPanel, BorderLayout.SOUTH);
 
-        frame.add(mainPanel);
-        frame.setVisible(true);
+            frame.add(mainPanel);
+            frame.setVisible(true);
 
-        // Focus editor when window opens
-        frame.addWindowListener(new java.awt.event.WindowAdapter() {
-            @Override
-            public void windowOpened(java.awt.event.WindowEvent e) {
-                ideEditor.focusEditor();
-            }
-        });
+            // Focus editor when window opens
+            frame.addWindowListener(new java.awt.event.WindowAdapter() {
+                @Override
+                public void windowOpened(java.awt.event.WindowEvent e) {
+                    ideEditor.focusEditor();
+                }
+            });
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                    "Error opening script editor: " + ex.getMessage() + "\n\n" + ex.getClass().getName(),
+                    "Script Editor Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void insertSnippetAtCaret(JTextArea area, String snippet) {
