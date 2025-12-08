@@ -1458,154 +1458,73 @@ public class GearSwapperPanel extends PluginPanel {
             return;
         }
 
-        JFrame frame = new JFrame("Loadout " + loadoutNum + " Script Editor");
+        JFrame frame = new JFrame("Loadout " + loadoutNum + " - Script Editor");
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        frame.setSize(800, 600);
+        frame.setSize(800, 650);
         frame.setLocationRelativeTo(this);
 
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        // Use new IDE-like editor
+        ScriptEditorIDE ideEditor = new ScriptEditorIDE(data.items != null ? data.items : "");
 
-        // Plain text editor with ghost autocomplete
-        GhostTextArea editorArea = new GhostTextArea(data.items != null ? data.items : "");
-        editorArea.setFont(new Font("Consolas", Font.PLAIN, 11));
-        editorArea.setLineWrap(true);
-        editorArea.setWrapStyleWord(true);
-        editorArea.setFocusTraversalKeysEnabled(false);
-        attachAutocomplete(editorArea);
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(new Color(30, 30, 30));
 
-        JScrollPane scroll = new JScrollPane(editorArea);
-        scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-        panel.add(scroll, BorderLayout.CENTER);
+        // Header
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(new Color(37, 37, 38));
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
 
-        JLabel header = new JLabel("Editing commands for " + data.name + " (Loadout " + loadoutNum + ")");
-        header.setFont(new Font("Whitney", Font.BOLD, 13));
+        JLabel header = new JLabel("Editing: " + data.name + " (Loadout " + loadoutNum + ")");
+        header.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        header.setForeground(new Color(212, 212, 212));
+        headerPanel.add(header, BorderLayout.WEST);
 
-        // Toolbar with helpers
-        JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
-        toolbar.setOpaque(false);
+        mainPanel.add(headerPanel, BorderLayout.NORTH);
+        mainPanel.add(ideEditor, BorderLayout.CENTER);
 
-        JLabel helperLabel = new JLabel("Select a command or condition to see examples.");
-        helperLabel.setFont(new Font("Whitney", Font.PLAIN, 10));
-        helperLabel.setForeground(new Color(160, 170, 185));
+        // Bottom panel with save button
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
+        bottomPanel.setBackground(new Color(37, 37, 38));
 
-        // Dropdown: Commands
-        JComboBox<String> commandsDropdown = new JComboBox<>(getAvailableCommandsList());
-        commandsDropdown.setFont(new Font("Whitney", Font.PLAIN, 10));
-        commandsDropdown.setFocusable(false);
-        commandsDropdown.addActionListener(e -> {
-            String sel = (String) commandsDropdown.getSelectedItem();
-            if (sel != null && !sel.startsWith("--")) {
-                insertSnippetAtCaret(editorArea, sel + System.lineSeparator());
-                helperLabel.setText(getCommandHelpText(sel));
+        JButton saveBtn = new JButton("Save & Close");
+        saveBtn.setBackground(new Color(76, 175, 80));
+        saveBtn.setForeground(Color.WHITE);
+        saveBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        saveBtn.setFocusPainted(false);
+        saveBtn.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
+        saveBtn.addActionListener(e -> {
+            String newScript = ideEditor.getScript();
+            data.items = newScript;
+            if (inlineCommandsArea != null) {
+                inlineCommandsArea.setText(newScript);
+                updateTextAreaHeight(inlineCommandsArea);
             }
+            saveLoadoutToConfig(loadoutNum);
+            frame.dispose();
         });
 
-        // Dropdown: Conditions
-        JComboBox<String> conditionsDropdown = new JComboBox<>(getAvailableConditionsList());
-        conditionsDropdown.setFont(new Font("Whitney", Font.PLAIN, 10));
-        conditionsDropdown.setFocusable(false);
-        conditionsDropdown.addActionListener(e -> {
-            String sel = (String) conditionsDropdown.getSelectedItem();
-            if (sel != null && !sel.startsWith("--")) {
-                String condition = sel.trim();
-                String snippet = "if " + condition + " {" + System.lineSeparator()
-                        + "    // commands here" + System.lineSeparator()
-                        + "}" + System.lineSeparator();
-                insertSnippetAtCaret(editorArea, snippet);
-                helperLabel.setText(getConditionHelpText(condition));
-            }
-        });
+        JButton cancelBtn = new JButton("Cancel");
+        cancelBtn.setBackground(new Color(97, 97, 97));
+        cancelBtn.setForeground(Color.WHITE);
+        cancelBtn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        cancelBtn.setFocusPainted(false);
+        cancelBtn.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
+        cancelBtn.addActionListener(e -> frame.dispose());
 
-        toolbar.add(commandsDropdown);
-        toolbar.add(conditionsDropdown);
+        bottomPanel.add(cancelBtn);
+        bottomPanel.add(saveBtn);
+        mainPanel.add(bottomPanel, BorderLayout.SOUTH);
 
-        JButton insertIfFrozenBtn = new JButton("if frozen {}");
-        insertIfFrozenBtn.setFont(new Font("Whitney", Font.PLAIN, 10));
-        insertIfFrozenBtn.addActionListener(e -> insertSnippetAtCaret(editorArea,
-                "if frozen { Armadyl godsword }" + System.lineSeparator()));
-
-        JButton insertIfElseBtn = new JButton("if / else");
-        insertIfElseBtn.setFont(new Font("Whitney", Font.PLAIN, 10));
-        insertIfElseBtn.addActionListener(e -> insertSnippetAtCaret(editorArea,
-                "if condition {\n    // commands here\n} else {\n    // alternative commands\n}"
-                        + System.lineSeparator()));
-
-        JButton validateBtn = new JButton("Validate");
-        validateBtn.setFont(new Font("Whitney", Font.BOLD, 10));
-        validateBtn.setBackground(new Color(76, 175, 80));
-        validateBtn.setForeground(Color.WHITE);
-        validateBtn.setFocusPainted(false);
-        validateBtn.addActionListener(e -> validateScript("Loadout " + loadoutNum, editorArea));
-
-        JButton suggestBtn = new JButton("Suggest");
-        suggestBtn.setFont(new Font("Whitney", Font.PLAIN, 10));
-        suggestBtn.setFocusPainted(false);
-        suggestBtn.addActionListener(e -> showAutocompleteFromButton(editorArea));
-
-        JButton rawTextBtn = new JButton("Raw Text");
-        rawTextBtn.setFont(new Font("Whitney", Font.PLAIN, 10));
-        rawTextBtn.setFocusPainted(false);
-        rawTextBtn.addActionListener(e -> openRawTextEditor(frame, editorArea, data, loadoutNum, inlineCommandsArea));
-
-        toolbar.add(commandsDropdown);
-        toolbar.add(conditionsDropdown);
-        toolbar.add(insertIfFrozenBtn);
-        toolbar.add(insertIfElseBtn);
-        toolbar.add(validateBtn);
-        toolbar.add(suggestBtn);
-        toolbar.add(rawTextBtn);
-
-        JPanel north = new JPanel();
-        north.setLayout(new BoxLayout(north, BoxLayout.Y_AXIS));
-        north.setOpaque(false);
-        header.setAlignmentX(Component.LEFT_ALIGNMENT);
-        toolbar.setAlignmentX(Component.LEFT_ALIGNMENT);
-        helperLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        north.add(header);
-        north.add(Box.createVerticalStrut(6));
-        north.add(toolbar);
-        north.add(Box.createVerticalStrut(4));
-        north.add(helperLabel);
-
-        panel.add(north, BorderLayout.NORTH);
-
-        JLabel hint = new JLabel(
-                "Use multiple lines and conditions (if, &&, ||, >, <, etc.) just like in the inline box.");
-        hint.setFont(new Font("Whitney", Font.PLAIN, 10));
-        hint.setForeground(new Color(160, 170, 185));
-        panel.add(hint, BorderLayout.SOUTH);
-
-        // Keep data + inline area in sync while editing (no background timer)
-        editorArea.getDocument().addDocumentListener(new DocumentListener() {
-            private void sync() {
-                String script = editorArea.getText();
-                data.items = script;
-                if (inlineCommandsArea != null) {
-                    inlineCommandsArea.setText(script);
-                    updateTextAreaHeight(inlineCommandsArea);
-                }
-                saveLoadoutToConfig(loadoutNum);
-            }
-
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-                sync();
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-                sync();
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent e) {
-                sync();
-            }
-        });
-
-        frame.add(panel);
+        frame.add(mainPanel);
         frame.setVisible(true);
+
+        // Focus editor when window opens
+        frame.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowOpened(java.awt.event.WindowEvent e) {
+                ideEditor.focusEditor();
+            }
+        });
     }
 
     private void insertSnippetAtCaret(JTextArea area, String snippet) {
