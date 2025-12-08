@@ -1,0 +1,23 @@
+name: Discord Release Notification
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  notify-discord:
+    name: Notify Discord
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Discord Release Notification
+        uses: AntonyUrben/github-releases-to-discord@v1
+        with:
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          color: "5865F2"
+          username: "GearSwapper Update"
+          avatar_url: "https://raw.githubusercontent.com/runelite/runelite/master/runelite-client/src/main/resources/net/runelite/client/plugins/gearswapper/gearswapper.png"
+          footer_title: "VitaLite Plugins"
+          footer_icon_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
