@@ -19,6 +19,7 @@ public class ScreenViewer extends JFrame {
 
     private long lastFrameTime = 0;
     private int frameCount = 0;
+    private int totalFrames = 0;
     private int fps = 0;
 
     public ScreenViewer(String peerName) {
@@ -43,7 +44,7 @@ public class ScreenViewer extends JFrame {
         statusBar.setBackground(new Color(45, 45, 48));
         statusBar.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
 
-        statusLabel = new JLabel("Connecting...");
+        statusLabel = new JLabel("Waiting for frames...");
         statusLabel.setForeground(new Color(150, 150, 150));
         statusLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         statusBar.add(statusLabel, BorderLayout.WEST);
@@ -66,6 +67,8 @@ public class ScreenViewer extends JFrame {
                 }
             }
         });
+
+        System.out.println("[FriendShare] Viewer opened for " + peerName);
     }
 
     /**
@@ -75,6 +78,14 @@ public class ScreenViewer extends JFrame {
         try {
             BufferedImage image = ImageIO.read(new ByteArrayInputStream(jpegData));
             if (image != null) {
+                totalFrames++;
+
+                // Log first few frames
+                if (totalFrames <= 3 || totalFrames % 100 == 0) {
+                    System.out.println("[FriendShare] Viewer received frame #" + totalFrames +
+                            " (" + jpegData.length + " bytes, " + image.getWidth() + "x" + image.getHeight() + ")");
+                }
+
                 imagePanel.setImage(image);
 
                 // Update FPS counter
@@ -85,14 +96,18 @@ public class ScreenViewer extends JFrame {
                     frameCount = 0;
                     lastFrameTime = now;
 
+                    final int currentFps = fps;
+                    final int size = jpegData.length;
                     SwingUtilities.invokeLater(() -> {
-                        statusLabel.setText(String.format("Viewing %s | %d FPS | %d KB",
-                                peerName, fps, jpegData.length / 1024));
+                        statusLabel.setText(String.format("Viewing %s | %d FPS | %d KB | %d total frames",
+                                peerName, currentFps, size / 1024, totalFrames));
                     });
                 }
+            } else {
+                System.err.println("[FriendShare] Failed to decode frame, got null image");
             }
         } catch (Exception e) {
-            // Ignore bad frames
+            System.err.println("[FriendShare] Frame decode error: " + e.getMessage());
         }
     }
 
@@ -114,7 +129,6 @@ public class ScreenViewer extends JFrame {
      * Custom panel that draws images with double buffering.
      */
     private static class ImagePanel extends JPanel {
-        private BufferedImage currentImage;
         private BufferedImage scaledImage;
         private int lastWidth = 0;
         private int lastHeight = 0;
@@ -124,9 +138,6 @@ public class ScreenViewer extends JFrame {
         }
 
         public void setImage(BufferedImage image) {
-            this.currentImage = image;
-
-            // Only rescale if panel size changed or first image
             int panelW = getWidth();
             int panelH = getHeight();
 
@@ -137,15 +148,10 @@ public class ScreenViewer extends JFrame {
                 int newW = (int) (image.getWidth() * scale);
                 int newH = (int) (image.getHeight() * scale);
 
-                // Only create new scaled image if size changed significantly
-                if (scaledImage == null ||
-                        Math.abs(lastWidth - newW) > 5 ||
-                        Math.abs(lastHeight - newH) > 5) {
-
-                    scaledImage = new BufferedImage(newW, newH, BufferedImage.TYPE_INT_RGB);
-                    lastWidth = newW;
-                    lastHeight = newH;
-                }
+                // Create new scaled image
+                scaledImage = new BufferedImage(newW, newH, BufferedImage.TYPE_INT_RGB);
+                lastWidth = newW;
+                lastHeight = newH;
 
                 // Draw to scaled buffer
                 Graphics2D g = scaledImage.createGraphics();
