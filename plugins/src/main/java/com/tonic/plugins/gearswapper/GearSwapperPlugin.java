@@ -271,6 +271,36 @@ public class GearSwapperPlugin extends Plugin {
         }
     }
 
+    /**
+     * Cancel all pending scheduled actions.
+     * Called when a new loadout is triggered to prevent queueing.
+     */
+    private void cancelAllPendingActions() {
+        // Clear tick-based scheduled tasks
+        if (!scheduledScriptTasks.isEmpty()) {
+            Logger.norm("[Gear Swapper] Cancelling " + scheduledScriptTasks.size() + " pending scheduled tasks");
+            scheduledScriptTasks.clear();
+        }
+
+        // Clear Wait-based pending commands
+        if (pendingLooperCommands != null) {
+            Logger.norm("[Gear Swapper] Cancelling pending looper commands");
+            pendingLooperCommands = null;
+            pendingLooperCommandIndex = 0;
+        }
+
+        // Clear heatmap queue
+        synchronized (heatmapLock) {
+            if (!heatmapQueue.isEmpty()) {
+                Logger.norm("[Gear Swapper] Cancelling " + heatmapQueue.size() + " pending heatmap actions");
+                heatmapQueue.clear();
+            }
+        }
+
+        // Reset looper pause
+        looperPauseTicks = 0;
+    }
+
     private volatile boolean mouseCircleTestRunning = false;
     private long mouseCircleTestStartMs = 0L;
     private long mouseCircleTestDurationMs = 10_000L;
@@ -1510,6 +1540,9 @@ public class GearSwapperPlugin extends Plugin {
 
         // Cancel any pending WaitAnim wait when new commands execute
         cancelWaitAnim();
+
+        // Cancel all previously scheduled actions to prevent queueing
+        cancelAllPendingActions();
 
         if (clickHeatmapEnabled) {
             resetHeatmapQueueForNewSequence();

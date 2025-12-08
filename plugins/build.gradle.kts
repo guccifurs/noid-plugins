@@ -218,7 +218,7 @@ val gearSwapperJar = tasks.register<Jar>("gearSwapperJar") {
     group = "build"
     description = "Packages only the Gear Swapper plugin for sideloading."
     archiveBaseName.set("gearswapper")
-    archiveVersion.set("1.5.26")
+    archiveVersion.set("1.5.27")
 
     from(sourceSets.main.get().output) {
         include("com/tonic/plugins/gearswapper/**")
@@ -232,7 +232,7 @@ val gearSwapperJar = tasks.register<Jar>("gearSwapperJar") {
 
     manifest {
         attributes(
-            "Plugin-Version" to "1.5.26",
+            "Plugin-Version" to "1.5.27",
             "Plugin-Id" to "gearswapper",
             "Plugin-Provider" to "Tonic",
             "Plugin-Name" to "Gear Swapper",
