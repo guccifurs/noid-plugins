@@ -26,8 +26,8 @@ import java.util.function.Consumer;
 @Singleton
 public class FriendShareService implements WebSocket.Listener {
 
-    // Server URL - change this to your CentOS server
-    private static final String SERVER_URL = "ws://localhost:8765";
+    // Server URL - CentOS server
+    private static final String SERVER_URL = "ws://172.233.59.91:8765";
 
     private final Client client;
     private final ClientThread clientThread;
