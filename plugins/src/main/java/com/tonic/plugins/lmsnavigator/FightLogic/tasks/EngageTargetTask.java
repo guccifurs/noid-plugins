@@ -15,13 +15,10 @@ import net.runelite.api.coords.WorldPoint;
  * Engage current target: dispatch to existing fight logic.
  * If target dies/is cleared, finish and re-evaluate.
  */
-public class EngageTargetTask
-{
-    public static void tick()
-    {
+public class EngageTargetTask {
+    public static void tick() {
         Player target = LmsState.getCurrentTarget();
-        if (target == null)
-        {
+        if (target == null) {
             Logger.norm("[EngageTargetTask] No current target; finishing engagement.");
             finish();
             return;
@@ -31,8 +28,7 @@ public class EngageTargetTask
 
         // Dispatch to the correct fight state logic, just like the original plugin
         CombatState state = FightStateManager.getCurrentState();
-        switch (state)
-        {
+        switch (state) {
             case BOTH_UNFROZEN:
                 BothUnfrozen.onGameTick();
                 break;
@@ -49,57 +45,56 @@ public class EngageTargetTask
                 BothFrozen.onGameTick();
                 break;
             default:
-                Logger.warn("[EngageTargetTask] Unknown or no combat state: " + state);
+                Logger.warn("[EngageTargetTask] Combat state: " + state + "; attempting basic attack on target");
+                // If we have a target but no combat state (or unknown), try to initiate attack
+                if (target != null) {
+                    com.tonic.api.TClient tClient = com.tonic.Static.getClient();
+                    if (tClient != null) {
+                        int targetId = target.getId();
+                        com.tonic.Static.invoke(() -> tClient.getPacketWriter().playerActionPacket(1, targetId, false));
+                    }
+                }
                 break;
         }
     }
 
-    private static void finish()
-    {
+    private static void finish() {
         Logger.norm("[EngageTargetTask] Combat finished; clearing target.");
         LmsState.setTarget(null);
 
-        // Resume safe zone navigation if it was active, else roam
-        if (LmsState.isFinalSafeZoneAnnounced())
-        {
-            TaskQueue.preempt(LmsState.LmsTask.GO_TO_SAFE_ZONE);
-        }
-        else
-        {
-            TaskQueue.preempt(LmsState.LmsTask.ROAM);
+        // Resume safe zone navigation if it was active, else roam - use forceTask to
+        // bypass priority
+        if (LmsState.isFinalSafeZoneAnnounced()) {
+            TaskQueue.forceTask(LmsState.LmsTask.GO_TO_SAFE_ZONE);
+        } else {
+            TaskQueue.forceTask(LmsState.LmsTask.ROAM);
         }
     }
 
-    private static void enforceSafeZoneDiscipline(Player target)
-    {
-        if (!LmsState.isSafeZoneBoxEnforced())
-        {
+    private static void enforceSafeZoneDiscipline(Player target) {
+        if (!LmsState.isSafeZoneBoxEnforced()) {
             return;
         }
 
         Client client = LMSNavigatorPlugin.getClient();
-        if (client == null)
-        {
+        if (client == null) {
             return;
         }
 
         Player local = client.getLocalPlayer();
-        if (local == null)
-        {
+        if (local == null) {
             return;
         }
 
         WorldPoint localPos = local.getWorldLocation();
-        if (localPos != null && !LmsState.isInsideSafeZoneBox(localPos))
-        {
+        if (localPos != null && !LmsState.isInsideSafeZoneBox(localPos)) {
             WorldPoint clamp = LmsState.clampToSafeZoneBox(localPos);
             Logger.norm("[EngageTargetTask] Staying inside safe zone box, moving to " + clamp);
             MovementAPI.walkToWorldPoint(clamp.getX(), clamp.getY());
         }
 
         boolean targetInside = target != null && LmsState.isInsideSafeZoneBox(target.getWorldLocation());
-        if (!targetInside)
-        {
+        if (!targetInside) {
             // Target is outside our safe zone box. We rely on existing combat automation
             // or user settings to choose an appropriate style (e.g. ranged/mage) rather
             // than forcibly switching to the fourth style, which is defensive for many

@@ -173,6 +173,14 @@ public class TileItemAPI
 
     public static void interact(int action, int identifier, int worldX, int worldY, boolean ctrlDown)
     {
+        // If we couldn't resolve a valid action index, do nothing instead of sending
+        // an invalid ground item packet. This prevents 'Packets::groundItemActionPacket invalid type'
+        // errors when the requested action (e.g. "Take") is not present on the item.
+        if (action < 0)
+        {
+            return;
+        }
+
         Client client = Static.getClient();
         if(!client.getGameState().equals(GameState.LOGGED_IN))
             return;

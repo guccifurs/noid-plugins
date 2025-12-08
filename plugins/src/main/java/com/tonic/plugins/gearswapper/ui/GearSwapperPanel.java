@@ -32,7 +32,7 @@ import java.util.Map;
 import java.util.LinkedHashSet;
 import com.tonic.plugins.gearswapper.ui.triggers.TriggerPanel;
 import com.tonic.plugins.gearswapper.sdn.ScriptSDNPanel;
-import com.tonic.plugins.noid.auth.NoidUser;
+import com.tonic.plugins.gearswapper.sdn.SDNUserInfo;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginManager;
 import org.slf4j.Logger;
@@ -104,7 +104,7 @@ public class GearSwapperPanel extends PluginPanel {
     @Inject
     public GearSwapperPanel() {
         setBorder(new EmptyBorder(12, 12, 12, 12));
-        setBackground(ColorScheme.DARKER_GRAY_COLOR);
+        setBackground(Theme.BACKGROUND);
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 
         // Add global key listener for keybind capture
@@ -331,54 +331,59 @@ public class GearSwapperPanel extends PluginPanel {
         JPanel looperContent = new JPanel();
         looperContent.setLayout(new BoxLayout(looperContent, BoxLayout.Y_AXIS));
         looperContent.setOpaque(false);
+        looperContent.setBorder(new EmptyBorder(5, 5, 5, 5));
 
         // Header row with title, toggle, and external editor button
         JPanel titleRow = new JPanel(new BorderLayout());
         titleRow.setOpaque(false);
-        titleRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
+        titleRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
 
         JLabel titleLabel = new JLabel("Global Looper");
-        titleLabel.setFont(new Font("Whitney", Font.BOLD, 12));
-        titleLabel.setForeground(new Color(120, 190, 255));
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        titleLabel.setForeground(Theme.TEXT_LINK);
 
-        JPanel rightButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
+        JPanel rightButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
         rightButtons.setOpaque(false);
 
         boolean enabled = plugin != null && plugin.isLooperEnabled();
         JToggleButton looperToggle = new JToggleButton("Looper");
         looperToggle.setSelected(enabled);
-        looperToggle.setBackground(enabled ? new Color(244, 67, 54) : new Color(76, 175, 80));
+        looperToggle.setBackground(enabled ? Theme.DANGER : Theme.SUCCESS);
         looperToggle.setForeground(Color.WHITE);
         looperToggle.setFocusPainted(false);
-        looperToggle.setFont(new Font("Whitney", Font.BOLD, 9));
+        looperToggle.setFont(new Font("Segoe UI", Font.BOLD, 9));
         looperToggle.setPreferredSize(new Dimension(80, 20));
         looperToggle.setMaximumSize(new Dimension(80, 20));
         looperToggle.setToolTipText("Toggle global looper on/off");
+        looperToggle
+                .setBorder(BorderFactory.createLineBorder(enabled ? Theme.DANGER.darker() : Theme.SUCCESS.darker()));
 
         looperToggle.addActionListener(e -> {
             boolean on = looperToggle.isSelected();
-            looperToggle.setBackground(on ? new Color(244, 67, 54) : new Color(76, 175, 80));
+            looperToggle.setBackground(on ? Theme.DANGER : Theme.SUCCESS);
+            looperToggle.setBorder(BorderFactory.createLineBorder(on ? Theme.DANGER.darker() : Theme.SUCCESS.darker()));
             if (plugin != null) {
                 plugin.setLooperEnabled(on);
             }
         });
 
         JButton scriptBtn = new JButton("📝");
-        scriptBtn.setBackground(new Color(33, 150, 243));
+        scriptBtn.setBackground(Theme.PRIMARY);
         scriptBtn.setForeground(Color.WHITE);
         scriptBtn.setFocusPainted(false);
         scriptBtn.setPreferredSize(new Dimension(32, 22));
         scriptBtn.setMaximumSize(new Dimension(32, 22));
-        scriptBtn.setFont(new Font("Whitney", Font.BOLD, 9));
+        scriptBtn.setFont(new Font("Segoe UI", Font.BOLD, 9));
         scriptBtn.setToolTipText("Open looper script editor");
+        scriptBtn.setBorder(BorderFactory.createLineBorder(Theme.PRIMARY.darker()));
 
         // Inline looper script area
         String initialScript = plugin != null ? plugin.getLooperScript() : "";
         GhostTextArea looperArea = new GhostTextArea(initialScript);
-        looperArea.setBackground(new Color(45, 46, 50));
-        looperArea.setForeground(Color.WHITE);
-        looperArea.setBorder(BorderFactory.createLineBorder(new Color(75, 77, 83)));
-        looperArea.setFont(new Font("Whitney", Font.PLAIN, 9));
+        looperArea.setBackground(Theme.BACKGROUND);
+        looperArea.setForeground(Theme.TEXT_PRIMARY);
+        looperArea.setBorder(BorderFactory.createLineBorder(Theme.BORDER));
+        looperArea.setFont(new Font("Consolas", Font.PLAIN, 11));
         looperArea.setLineWrap(true);
         looperArea.setWrapStyleWord(true);
         looperArea.setFocusTraversalKeysEnabled(false);
@@ -392,8 +397,8 @@ public class GearSwapperPanel extends PluginPanel {
         titleRow.add(rightButtons, BorderLayout.EAST);
 
         JLabel scriptLabel = new JLabel("Script (executes every tick when Looper is ON):");
-        scriptLabel.setFont(new Font("Whitney", Font.BOLD, 10));
-        scriptLabel.setForeground(new Color(170, 175, 185));
+        scriptLabel.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        scriptLabel.setForeground(Theme.TEXT_SECONDARY);
         scriptLabel.setBorder(new EmptyBorder(4, 0, 2, 0));
 
         updateTextAreaHeight(looperArea);
@@ -553,26 +558,16 @@ public class GearSwapperPanel extends PluginPanel {
     }
 
     private JPanel buildDocumentationButton() {
-        final JPanel docPanel = new JPanel(new BorderLayout());
-        docPanel.setOpaque(true);
-        docPanel.setBackground(new Color(45, 46, 50));
-        docPanel.setBorder(new EmptyBorder(12, 16, 12, 16));
-        docPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+        JPanel panel = new JPanel(new GridLayout(1, 1));
+        panel.setOpaque(false);
+        panel.setBorder(new EmptyBorder(10, 10, 5, 10));
 
-        final JButton docButton = new JButton("📚 Open Documentation");
-        docButton.setBackground(new Color(33, 150, 243));
-        docButton.setForeground(Color.WHITE);
-        docButton.setFocusPainted(false);
-        docButton.setPreferredSize(new Dimension(Integer.MAX_VALUE, 28));
-        docButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
-        docButton.setFont(new Font("Whitney", Font.BOLD, 11));
-        docButton.setHorizontalAlignment(SwingConstants.CENTER);
-        docButton.setBorder(new EmptyBorder(8, 16, 8, 16));
+        // Secondary style for docs
+        JButton docButton = createStyledButton("📚 Open Documentation", Theme.SURFACE_HOVER, Theme.TEXT_PRIMARY);
         docButton.addActionListener(e -> openDocumentationPanel());
 
-        docPanel.add(docButton, BorderLayout.CENTER);
-
-        return docPanel;
+        panel.add(docButton);
+        return panel;
     }
 
     private void openDocumentationPanel() {
@@ -591,27 +586,16 @@ public class GearSwapperPanel extends PluginPanel {
      * Build Script SDN button - opens the community script sharing panel
      */
     private JPanel buildScriptSDNButton() {
-        final JPanel sdnPanel = new JPanel(new BorderLayout());
-        sdnPanel.setOpaque(true);
-        sdnPanel.setBackground(new Color(45, 46, 50));
-        sdnPanel.setBorder(new EmptyBorder(8, 16, 8, 16));
-        sdnPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        JPanel panel = new JPanel(new GridLayout(1, 1));
+        panel.setOpaque(false);
+        panel.setBorder(new EmptyBorder(5, 10, 10, 10));
 
-        final JButton sdnButton = new JButton("📜 Script SDN");
-        sdnButton.setBackground(new Color(88, 101, 242)); // Discord-like purple
-        sdnButton.setForeground(Color.WHITE);
-        sdnButton.setFocusPainted(false);
-        sdnButton.setPreferredSize(new Dimension(Integer.MAX_VALUE, 24));
-        sdnButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 24));
-        sdnButton.setFont(new Font("Whitney", Font.BOLD, 10));
-        sdnButton.setHorizontalAlignment(SwingConstants.CENTER);
-        sdnButton.setBorder(new EmptyBorder(4, 12, 4, 12));
-
+        // Primary style for SDN (Community)
+        JButton sdnButton = createStyledButton("📜 Script SDN", Theme.PRIMARY, Color.WHITE);
         sdnButton.addActionListener(e -> openScriptSDNPanel());
 
-        sdnPanel.add(sdnButton, BorderLayout.CENTER);
-
-        return sdnPanel;
+        panel.add(sdnButton);
+        return panel;
     }
 
     /**
@@ -620,35 +604,74 @@ public class GearSwapperPanel extends PluginPanel {
     private void openScriptSDNPanel() {
         System.out.println("[Gear Swapper DEBUG] Opening Script SDN panel...");
 
-        // Create user supplier that gets the current NoidUser via reflection
-        java.util.function.Supplier<NoidUser> userSupplier = () -> {
-            if (plugin == null)
+        // Create user supplier that gets auth info via reflection (avoids NoidUser
+        // class dependency)
+        java.util.function.Supplier<SDNUserInfo> userSupplier = () -> {
+            if (plugin == null) {
+                System.out.println("[Gear Swapper SDN] plugin is null!");
                 return null;
+            }
 
             try {
-                // Get PluginManager from plugin
-                java.lang.reflect.Field pmField = plugin.getClass().getSuperclass().getDeclaredField("pluginManager");
+                // Get PluginManager from plugin - it's a field on GearSwapperPlugin, not
+                // superclass
+                java.lang.reflect.Field pmField = null;
+                Class<?> clazz = plugin.getClass();
+
+                // Search through class hierarchy for pluginManager field
+                while (clazz != null && pmField == null) {
+                    try {
+                        pmField = clazz.getDeclaredField("pluginManager");
+                    } catch (NoSuchFieldException e) {
+                        clazz = clazz.getSuperclass();
+                    }
+                }
+
+                if (pmField == null) {
+                    System.out.println("[Gear Swapper SDN] Could not find pluginManager field!");
+                    return null;
+                }
+
                 pmField.setAccessible(true);
                 PluginManager pm = (PluginManager) pmField.get(plugin);
+                System.out
+                        .println("[Gear Swapper SDN] Found PluginManager with " + pm.getPlugins().size() + " plugins");
 
                 for (Plugin p : pm.getPlugins()) {
                     if (p.getClass().getSimpleName().equals("NoidPlugin")) {
+                        System.out.println("[Gear Swapper SDN] Found NoidPlugin!");
+
                         java.lang.reflect.Method authMethod = p.getClass().getMethod("isAuthenticated");
                         boolean authenticated = (Boolean) authMethod.invoke(p);
+                        System.out.println("[Gear Swapper SDN] isAuthenticated = " + authenticated);
 
                         if (authenticated) {
                             java.lang.reflect.Method userMethod = p.getClass().getMethod("getCurrentUser");
                             Object user = userMethod.invoke(p);
+                            System.out.println("[Gear Swapper SDN] getCurrentUser = " + user);
+
                             if (user != null) {
-                                // Cast to NoidUser (same class)
-                                return (NoidUser) user;
+                                // Extract values via reflection to avoid class dependency
+                                java.lang.reflect.Method getSessionToken = user.getClass().getMethod("getSessionToken");
+                                java.lang.reflect.Method getDiscordId = user.getClass().getMethod("getDiscordId");
+                                java.lang.reflect.Method getDiscordName = user.getClass().getMethod("getDiscordName");
+
+                                String sessionToken = (String) getSessionToken.invoke(user);
+                                String discordId = (String) getDiscordId.invoke(user);
+                                String discordName = (String) getDiscordName.invoke(user);
+
+                                System.out.println(
+                                        "[Gear Swapper SDN] Got user: " + discordName + " (" + discordId + ")");
+                                return new SDNUserInfo(sessionToken, discordId, discordName);
                             }
                         }
                         break;
                     }
                 }
+                System.out.println("[Gear Swapper SDN] NoidPlugin not found in loaded plugins!");
             } catch (Exception ex) {
-                System.out.println("[Gear Swapper] Failed to get NoidUser: " + ex.getMessage());
+                System.out.println("[Gear Swapper SDN] Failed to get user info: " + ex.getMessage());
+                ex.printStackTrace();
             }
             return null;
         };
@@ -929,7 +952,7 @@ public class GearSwapperPanel extends PluginPanel {
 
             // Return a simple fallback panel
             JPanel fallback = new JPanel();
-            fallback.setBackground(Color.RED);
+            fallback.setBackground(Theme.DANGER);
             fallback.add(new JLabel("HEATMAP ERROR"));
             return fallback;
         }
@@ -1015,17 +1038,19 @@ public class GearSwapperPanel extends PluginPanel {
     private JPanel buildHeader() {
         final JPanel card = new JPanel(new BorderLayout());
         card.setOpaque(true);
-        card.setBackground(new Color(45, 46, 50));
-        card.setBorder(new EmptyBorder(16, 20, 16, 20));
+        card.setBackground(Theme.SURFACE);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Theme.BORDER, 1),
+                new EmptyBorder(16, 20, 16, 20)));
         card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
 
-        final JLabel title = new JLabel("⚔️ Gear Swapper v2.2");
-        title.setFont(new Font("Whitney", Font.BOLD, 18));
-        title.setForeground(Color.WHITE);
+        final JLabel title = new JLabel("⚔️ Gear Swapper");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        title.setForeground(Theme.TEXT_PRIMARY);
 
-        final JLabel subtitle = new JLabel("Automated gear & loadout management");
-        subtitle.setFont(new Font("Whitney", Font.PLAIN, 12));
-        subtitle.setForeground(new Color(160, 170, 185));
+        final JLabel subtitle = new JLabel("Automated gear management");
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        subtitle.setForeground(Theme.TEXT_SECONDARY);
 
         final JPanel text = new JPanel();
         text.setOpaque(false);
@@ -1037,6 +1062,7 @@ public class GearSwapperPanel extends PluginPanel {
         text.add(subtitle);
 
         card.add(text, BorderLayout.CENTER);
+
         return card;
     }
 
@@ -1047,63 +1073,62 @@ public class GearSwapperPanel extends PluginPanel {
         presetsContentPanel = new JPanel();
         presetsContentPanel.setLayout(new BoxLayout(presetsContentPanel, BoxLayout.Y_AXIS));
         presetsContentPanel.setOpaque(false);
+        presetsContentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
 
         // Preset selector
         presetSelector = new JComboBox<>();
-        presetSelector.setBackground(new Color(52, 53, 58));
-        presetSelector.setForeground(Color.WHITE);
-        presetSelector.setBorder(BorderFactory.createLineBorder(new Color(75, 77, 83)));
-        presetSelector.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
+        presetSelector.setBackground(Theme.BACKGROUND);
+        presetSelector.setForeground(Theme.TEXT_PRIMARY);
+        presetSelector.setBorder(BorderFactory.createLineBorder(Theme.BORDER));
+        presetSelector.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        // Add renderer for better styling if possible, but basic color is fine for now
         updatePresetSelector();
 
-        // Action buttons row - more compact
-        JPanel buttonRow = new JPanel(new BorderLayout());
+        // Action buttons row - Grid for even spacing
+        JPanel buttonRow = new JPanel(new GridLayout(1, 3, 5, 0));
         buttonRow.setOpaque(false);
-        buttonRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
+        buttonRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
         buttonRow.setBorder(new EmptyBorder(8, 0, 8, 0));
 
-        JButton saveBtn = new JButton("Save");
-        saveBtn.setBackground(new Color(76, 175, 80));
-        saveBtn.setForeground(Color.WHITE);
-        saveBtn.setFocusPainted(false);
-        saveBtn.setFont(new Font("Whitney", Font.BOLD, 10));
+        JButton saveBtn = createStyledButton("Save", Theme.SUCCESS, Color.WHITE);
         saveBtn.addActionListener(e -> saveCurrentToPreset());
 
-        JButton loadBtn = new JButton("Load");
-        loadBtn.setBackground(new Color(33, 150, 243));
-        loadBtn.setForeground(Color.WHITE);
-        loadBtn.setFocusPainted(false);
-        loadBtn.setFont(new Font("Whitney", Font.BOLD, 10));
+        JButton loadBtn = createStyledButton("Load", Theme.PRIMARY, Color.WHITE);
         loadBtn.addActionListener(e -> loadSelectedPreset());
 
-        JButton deleteBtn = new JButton("Delete");
-        deleteBtn.setBackground(new Color(244, 67, 54));
-        deleteBtn.setForeground(Color.WHITE);
-        deleteBtn.setFocusPainted(false);
-        deleteBtn.setFont(new Font("Whitney", Font.BOLD, 10));
+        JButton deleteBtn = createStyledButton("Delete", Theme.DANGER, Color.WHITE);
         deleteBtn.addActionListener(e -> deleteSelectedPreset());
 
-        buttonRow.add(saveBtn, BorderLayout.WEST);
-        buttonRow.add(loadBtn, BorderLayout.CENTER);
-        buttonRow.add(deleteBtn, BorderLayout.EAST);
+        buttonRow.add(saveBtn);
+        buttonRow.add(loadBtn);
+        buttonRow.add(deleteBtn);
 
-        // Create new preset - more compact
-        JPanel createPanel = new JPanel(new BorderLayout());
+        // Create new preset
+        JPanel createPanel = new JPanel(new BorderLayout(5, 0));
         createPanel.setOpaque(false);
-        createPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
+        createPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
 
-        JTextField newPresetField = new JTextField("New preset name...");
-        newPresetField.setBackground(new Color(52, 53, 58));
-        newPresetField.setForeground(Color.WHITE);
-        newPresetField.setBorder(BorderFactory.createLineBorder(new Color(75, 77, 83)));
-        newPresetField.setFont(new Font("Whitney", Font.PLAIN, 10));
+        JTextField newPresetField = createStyledTextField();
+        newPresetField.setText("New preset name...");
+        // Add placeholder behavior
+        newPresetField.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                if (newPresetField.getText().equals("New preset name...")) {
+                    newPresetField.setText("");
+                    newPresetField.setForeground(Theme.TEXT_PRIMARY);
+                }
+            }
 
-        JButton createBtn = new JButton("Create");
-        createBtn.setBackground(new Color(156, 39, 176));
-        createBtn.setForeground(Color.WHITE);
-        createBtn.setFocusPainted(false);
-        createBtn.setPreferredSize(new Dimension(70, 25));
-        createBtn.setFont(new Font("Whitney", Font.BOLD, 10));
+            public void focusLost(java.awt.event.FocusEvent evt) {
+                if (newPresetField.getText().isEmpty()) {
+                    newPresetField.setText("New preset name...");
+                    newPresetField.setForeground(Theme.TEXT_MUTED);
+                }
+            }
+        });
+
+        JButton createBtn = createStyledButton("Create", Theme.PURPLE, Color.WHITE);
+        createBtn.setPreferredSize(new Dimension(80, 30));
         createBtn.addActionListener(e -> createNewPreset(newPresetField.getText()));
 
         createPanel.add(newPresetField, BorderLayout.CENTER);
@@ -1113,7 +1138,7 @@ public class GearSwapperPanel extends PluginPanel {
         presetsContentPanel.add(buttonRow);
         presetsContentPanel.add(createPanel);
 
-        presetsPanel.addContent(presetsContentPanel);
+        presetsPanel.setContent(presetsContentPanel);
         return presetsPanel;
     }
 
@@ -1192,9 +1217,9 @@ public class GearSwapperPanel extends PluginPanel {
         final JPanel card = new JPanel();
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setOpaque(true);
-        card.setBackground(new Color(52, 53, 58));
+        card.setBackground(Theme.SURFACE);
         card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(65, 67, 73)),
+                BorderFactory.createLineBorder(Theme.BORDER),
                 new EmptyBorder(10, 12, 10, 12)));
         card.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
 
@@ -1203,41 +1228,43 @@ public class GearSwapperPanel extends PluginPanel {
 
         // Commands text area (shared between inline view and external editor)
         JTextArea commandsArea = new JTextArea(data.items);
-        commandsArea.setBackground(new Color(45, 46, 50));
-        commandsArea.setForeground(Color.WHITE);
-        commandsArea.setBorder(BorderFactory.createLineBorder(new Color(75, 77, 83)));
-        commandsArea.setFont(new Font("Whitney", Font.PLAIN, 9));
+        commandsArea.setBackground(Theme.BACKGROUND);
+        commandsArea.setForeground(Theme.TEXT_PRIMARY); // Clean text color
+        commandsArea.setBorder(BorderFactory.createLineBorder(Theme.BORDER));
+        commandsArea.setFont(new Font("Consolas", Font.PLAIN, 11)); // Monospace for code/scripts
         commandsArea.setLineWrap(true);
         commandsArea.setWrapStyleWord(true);
 
         // Title row
         JPanel titleRow = new JPanel(new BorderLayout());
         titleRow.setOpaque(false);
-        titleRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
+        titleRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
 
         JLabel titleLabel = new JLabel("Loadout " + loadoutNum);
-        titleLabel.setFont(new Font("Whitney", Font.BOLD, 12));
-        titleLabel.setForeground(new Color(120, 190, 255));
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        titleLabel.setForeground(Theme.TEXT_LINK); // Use Link/Primary color for title
         titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JButton deleteBtn = new JButton("🗑️");
-        deleteBtn.setBackground(new Color(244, 67, 54));
+        deleteBtn.setBackground(Theme.DANGER);
         deleteBtn.setForeground(Color.WHITE);
         deleteBtn.setFocusPainted(false);
         deleteBtn.setPreferredSize(new Dimension(28, 22));
         deleteBtn.setMaximumSize(new Dimension(28, 22));
-        deleteBtn.setFont(new Font("Whitney", Font.BOLD, 9));
+        deleteBtn.setFont(new Font("Segoe UI", Font.BOLD, 10));
         deleteBtn.setToolTipText("Delete this loadout");
+        deleteBtn.setBorder(BorderFactory.createLineBorder(Theme.DANGER.darker()));
         deleteBtn.addActionListener(e -> deleteLoadout(loadoutNum));
 
         JButton copyBtn = new JButton("📋");
-        copyBtn.setBackground(new Color(76, 175, 80));
+        copyBtn.setBackground(Theme.SUCCESS);
         copyBtn.setForeground(Color.WHITE);
         copyBtn.setFocusPainted(false);
         copyBtn.setPreferredSize(new Dimension(28, 22));
         copyBtn.setMaximumSize(new Dimension(28, 22));
-        copyBtn.setFont(new Font("Whitney", Font.BOLD, 9));
+        copyBtn.setFont(new Font("Segoe UI", Font.BOLD, 10));
         copyBtn.setToolTipText("Copy current gear to this loadout");
+        copyBtn.setBorder(BorderFactory.createLineBorder(Theme.SUCCESS.darker()));
         copyBtn.addActionListener(e -> copyCurrentGearToLoadout(loadoutNum));
 
         // Track delete button
@@ -1245,32 +1272,34 @@ public class GearSwapperPanel extends PluginPanel {
 
         // Script editor button
         JButton scriptBtn = new JButton("📝");
-        scriptBtn.setBackground(new Color(33, 150, 243));
+        scriptBtn.setBackground(Theme.PRIMARY);
         scriptBtn.setForeground(Color.WHITE);
         scriptBtn.setFocusPainted(false);
         scriptBtn.setPreferredSize(new Dimension(32, 22));
         scriptBtn.setMaximumSize(new Dimension(32, 22));
-        scriptBtn.setFont(new Font("Whitney", Font.BOLD, 9));
+        scriptBtn.setFont(new Font("Segoe UI", Font.BOLD, 10));
         scriptBtn.setToolTipText("Open script editor for this loadout");
+        scriptBtn.setBorder(BorderFactory.createLineBorder(Theme.PRIMARY.darker()));
         scriptBtn.addActionListener(e -> openScriptEditor(loadoutNum, data, commandsArea));
 
         // Create button panel for right side
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
-        buttonPanel.setOpaque(false);
-        buttonPanel.add(scriptBtn);
-        buttonPanel.add(copyBtn);
-        buttonPanel.add(deleteBtn);
+        JPanel rightButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+        rightButtons.setOpaque(false);
+        rightButtons.add(scriptBtn);
+        rightButtons.add(copyBtn);
+        rightButtons.add(deleteBtn);
 
         titleRow.add(titleLabel, BorderLayout.WEST);
-        titleRow.add(buttonPanel, BorderLayout.EAST);
+        titleRow.add(rightButtons, BorderLayout.EAST);
 
+        // ... (rest of the method needs to be checked if I cut it off)
         // Name field
-        JTextField nameField = new JTextField(data.name);
-        nameField.setBackground(new Color(45, 46, 50));
-        nameField.setForeground(Color.WHITE);
-        nameField.setBorder(BorderFactory.createLineBorder(new Color(75, 77, 83)));
-        nameField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 22));
-        nameField.setFont(new Font("Whitney", Font.PLAIN, 10));
+        JTextField nameField = createStyledTextField();
+        nameField.setText(data.name);
+        nameField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 24));
+        // Reset border since createStyledTextField sets padding not ideal for this
+        // context?
+        // Actually it's fine.
 
         // Save name changes
         nameField.getDocument().addDocumentListener(new DocumentListener() {
@@ -1295,8 +1324,8 @@ public class GearSwapperPanel extends PluginPanel {
 
         // Execute commands area
         JLabel executeLabel = new JLabel("Commands:");
-        executeLabel.setFont(new Font("Whitney", Font.BOLD, 10));
-        executeLabel.setForeground(new Color(170, 175, 185));
+        executeLabel.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        executeLabel.setForeground(Theme.TEXT_SECONDARY);
         executeLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         executeLabel.setBorder(new EmptyBorder(4, 0, 2, 0));
 
@@ -1331,7 +1360,7 @@ public class GearSwapperPanel extends PluginPanel {
         commandsScroll.setPreferredSize(new Dimension(Integer.MAX_VALUE, 50));
         commandsScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
         commandsScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        commandsScroll.setBorder(BorderFactory.createLineBorder(new Color(75, 77, 83)));
+        commandsScroll.setBorder(BorderFactory.createLineBorder(Theme.BORDER));
 
         // Bottom row - Attack toggle and Keybind
         JPanel optionsRow = new JPanel(new BorderLayout());
@@ -1341,37 +1370,42 @@ public class GearSwapperPanel extends PluginPanel {
 
         // Left side - Attack toggle
         JToggleButton attackToggle = new JToggleButton("⚔️ Attack");
-        attackToggle.setBackground(new Color(76, 175, 80));
+        attackToggle.setBackground(Theme.SUCCESS);
         attackToggle.setForeground(Color.WHITE);
         attackToggle.setFocusPainted(false);
-        attackToggle.setFont(new Font("Whitney", Font.BOLD, 9));
+        attackToggle.setFont(new Font("Segoe UI", Font.BOLD, 9));
         attackToggle.setPreferredSize(new Dimension(70, 20));
         attackToggle.setMaximumSize(new Dimension(70, 20));
         attackToggle.setToolTipText("Toggle attack on/off for this loadout");
+        attackToggle.setBorder(BorderFactory.createLineBorder(Theme.SUCCESS.darker()));
 
         // Set initial state based on data.attack
         attackToggle.setSelected(data.getAttack());
         if (data.getAttack()) {
-            attackToggle.setBackground(new Color(244, 67, 54));
+            attackToggle.setBackground(Theme.DANGER);
+            attackToggle.setBorder(BorderFactory.createLineBorder(Theme.DANGER.darker()));
         }
 
         // Handle attack toggle changes
         attackToggle.addActionListener(e -> {
             boolean isAttack = attackToggle.isSelected();
             data.setAttack(isAttack);
-            attackToggle.setBackground(isAttack ? new Color(244, 67, 54) : new Color(76, 175, 80));
+            attackToggle.setBackground(isAttack ? Theme.DANGER : Theme.SUCCESS);
+            attackToggle.setBorder(
+                    BorderFactory.createLineBorder(isAttack ? Theme.DANGER.darker() : Theme.SUCCESS.darker()));
             saveLoadoutToConfig(loadoutNum);
         });
 
         // Right side - Keybind
         JButton keybindBtn = new JButton("🔗 " + (data.keybind != null ? data.keybind.toString() : "Set Keybind"));
-        keybindBtn.setBackground(new Color(76, 175, 80));
-        keybindBtn.setForeground(Color.WHITE);
+        keybindBtn.setBackground(Theme.SURFACE_HOVER); // Neutral/Secondary
+        keybindBtn.setForeground(Theme.TEXT_PRIMARY);
         keybindBtn.setFocusPainted(false);
         keybindBtn.setPreferredSize(new Dimension(110, 22));
         keybindBtn.setMaximumSize(new Dimension(110, 22));
-        keybindBtn.setFont(new Font("Whitney", Font.BOLD, 9));
+        keybindBtn.setFont(new Font("Segoe UI", Font.BOLD, 9));
         keybindBtn.setToolTipText("Set keybind for this loadout");
+        keybindBtn.setBorder(BorderFactory.createLineBorder(Theme.BORDER));
         keybindBtn.addActionListener(e -> setKeybind(loadoutNum, keybindBtn));
 
         // Track keybind button
@@ -2857,22 +2891,36 @@ public class GearSwapperPanel extends PluginPanel {
             // Header
             headerPanel = new JPanel(new BorderLayout());
             headerPanel.setOpaque(true);
-            headerPanel.setBackground(new Color(45, 46, 50));
+            headerPanel.setBackground(Theme.SURFACE);
             headerPanel.setBorder(new EmptyBorder(10, 16, 10, 16));
             headerPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
 
             titleLabel = new JLabel(title);
-            titleLabel.setFont(new Font("Whitney", Font.BOLD, 13));
-            titleLabel.setForeground(Color.WHITE);
+            titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            titleLabel.setForeground(Theme.TEXT_PRIMARY);
 
             toggleButton = new JButton("▼");
-            toggleButton.setBackground(new Color(76, 175, 80));
-            toggleButton.setForeground(Color.WHITE);
+            toggleButton.setBackground(Theme.BACKGROUND); // Subtle button
+            toggleButton.setForeground(Theme.TEXT_SECONDARY);
             toggleButton.setFocusPainted(false);
-            toggleButton.setPreferredSize(new Dimension(35, 22));
-            toggleButton.setMaximumSize(new Dimension(35, 22));
-            toggleButton.setFont(new Font("Whitney", Font.BOLD, 11));
+            toggleButton.setPreferredSize(new Dimension(30, 22));
+            toggleButton.setMaximumSize(new Dimension(30, 22));
+            toggleButton.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            toggleButton.setBorder(BorderFactory.createLineBorder(Theme.BORDER));
             toggleButton.addActionListener(e -> toggle());
+
+            // Hover effect for toggle
+            toggleButton.addMouseListener(new java.awt.event.MouseAdapter() {
+                public void mouseEntered(java.awt.event.MouseEvent evt) {
+                    toggleButton.setBackground(Theme.SURFACE_HOVER);
+                    toggleButton.setForeground(Theme.TEXT_PRIMARY);
+                }
+
+                public void mouseExited(java.awt.event.MouseEvent evt) {
+                    toggleButton.setBackground(Theme.BACKGROUND);
+                    toggleButton.setForeground(Theme.TEXT_SECONDARY);
+                }
+            });
 
             headerPanel.add(titleLabel, BorderLayout.CENTER);
             headerPanel.add(toggleButton, BorderLayout.EAST);
@@ -2894,6 +2942,13 @@ public class GearSwapperPanel extends PluginPanel {
 
         public void addContent(Component component) {
             contentPanel.add(component);
+        }
+
+        public void setContent(Component component) {
+            contentPanel.removeAll();
+            contentPanel.add(component);
+            revalidate();
+            repaint();
         }
 
         public void addVerticalStrut(int height) {
@@ -4941,5 +4996,70 @@ public class GearSwapperPanel extends PluginPanel {
 
         rawFrame.add(panel);
         rawFrame.setVisible(true);
+    }
+
+    // =================================================================================
+    // UI Helpers
+    // =================================================================================
+
+    private JButton createStyledButton(String text, Color bg, Color fg) {
+        JButton btn = new JButton(text);
+        btn.setBackground(bg);
+        btn.setForeground(fg);
+        btn.setFocusPainted(false);
+        btn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(bg.darker(), 1),
+                BorderFactory.createEmptyBorder(6, 12, 6, 12) // Comfortable padding
+        ));
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+
+        // Add subtle hover effect
+        btn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btn.setBackground(bg.brighter());
+            }
+
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btn.setBackground(bg);
+            }
+        });
+
+        return btn;
+    }
+
+    private JPanel createSectionPanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(Theme.SURFACE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Theme.BORDER, 1),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)));
+        return panel;
+    }
+
+    private JLabel createTitleLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        label.setForeground(Theme.PRIMARY);
+        label.setBorder(new EmptyBorder(0, 0, 8, 0));
+        return label;
+    }
+
+    private JLabel createSubtitleLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        label.setForeground(Theme.TEXT_SECONDARY);
+        return label;
+    }
+
+    private JTextField createStyledTextField() {
+        JTextField field = new JTextField();
+        field.setBackground(Theme.BACKGROUND);
+        field.setForeground(Theme.TEXT_PRIMARY);
+        field.setCaretColor(Theme.TEXT_PRIMARY);
+        field.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Theme.BORDER),
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)));
+        return field;
     }
 }

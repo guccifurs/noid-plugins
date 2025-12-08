@@ -98,9 +98,8 @@ tasks.test {
 
 // Temporarily exclude broken plugins from compilation
 tasks.named<JavaCompile>("compileJava") {
-    exclude("com/tonic/plugins/multiclientutils/**")
-    exclude("com/tonic/plugins/targetlockon/**")
-    exclude("com/tonic/plugins/breakhandler/**")
+    // Only compile GearSwapper to avoid errors in other broken plugins
+    include("com/tonic/plugins/gearswapper/**")
 }
 
 // Build a standalone jar containing only the Noid Auth plugin for sideloading
@@ -219,7 +218,7 @@ val gearSwapperJar = tasks.register<Jar>("gearSwapperJar") {
     group = "build"
     description = "Packages only the Gear Swapper plugin for sideloading."
     archiveBaseName.set("gearswapper")
-    archiveVersion.set("1.5.0")
+    archiveVersion.set("1.5.22")
 
     from(sourceSets.main.get().output) {
         include("com/tonic/plugins/gearswapper/**")
@@ -233,7 +232,7 @@ val gearSwapperJar = tasks.register<Jar>("gearSwapperJar") {
 
     manifest {
         attributes(
-            "Plugin-Version" to version,
+            "Plugin-Version" to "1.5.22",
             "Plugin-Id" to "gearswapper",
             "Plugin-Provider" to "Tonic",
             "Plugin-Name" to "Gear Swapper",

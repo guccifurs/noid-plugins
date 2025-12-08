@@ -1,0 +1,21 @@
+{
+    "name": "noid-bot",
+    "version": "1.0.0",
+    "description": "NoidPlugin Discord Bot",
+    "main": "src/index.js",
+    "scripts": {
+        "start": "node src/index.js",
+        "dev": "nodemon src/index.js",
+        "deploy": "node src/deploy-commands.js"
+    },
+    "dependencies": {
+        "discord.js": "^14.14.1",
+        "dotenv": "^16.3.1",
+        "axios": "^1.6.2",
+        "express": "^4.18.2",
+        "better-sqlite3": "^9.2.2"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.2"
+    }
+}

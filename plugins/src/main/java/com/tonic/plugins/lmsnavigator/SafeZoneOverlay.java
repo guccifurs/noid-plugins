@@ -2,13 +2,17 @@ package com.tonic.plugins.lmsnavigator;
 
 import com.tonic.Logger;
 import com.tonic.plugins.lmsnavigator.FightLogic.LmsState;
+import com.tonic.plugins.lmsnavigator.FightLogic.LmsState.LmsTask;
+import com.tonic.plugins.lmsnavigator.FightLogic.tasks.UpgradeGearTask;
 import net.runelite.api.Client;
 import net.runelite.api.GameObject;
 import net.runelite.api.Perspective;
 import net.runelite.api.Scene;
 import net.runelite.api.Tile;
 import net.runelite.api.WorldView;
+import net.runelite.api.Player;
 import net.runelite.api.coords.LocalPoint;
+import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
@@ -34,6 +38,8 @@ public class SafeZoneOverlay extends Overlay
     @Override
     public Dimension render(Graphics2D graphics)
     {
+        renderChestPath(graphics);
+
         if (!LmsState.isSafeZoneBoxEnforced())
         {
             return null;
@@ -252,6 +258,56 @@ public class SafeZoneOverlay extends Overlay
         }
 
         return null;
+    }
+
+    private void renderChestPath(Graphics2D graphics)
+    {
+        if (client == null)
+        {
+            return;
+        }
+
+        // Only show chest path while the upgrade task is actually active.
+        if (LmsState.getCurrentTask() != LmsTask.UPGRADE_GEAR)
+        {
+            return;
+        }
+
+        WorldPoint chest = UpgradeGearTask.getTargetChestLocation();
+        if (chest == null)
+        {
+            return;
+        }
+
+        Player local = client.getLocalPlayer();
+        if (local == null)
+        {
+            return;
+        }
+
+        WorldPoint playerWp = local.getWorldLocation();
+        if (playerWp == null)
+        {
+            return;
+        }
+
+        LocalPoint chestLocal = LocalPoint.fromWorld(client, chest);
+        LocalPoint playerLocal = LocalPoint.fromWorld(client, playerWp);
+        if (chestLocal == null || playerLocal == null)
+        {
+            return;
+        }
+
+        net.runelite.api.Point chestCanvas = Perspective.localToCanvas(client, chestLocal, chest.getPlane());
+        net.runelite.api.Point playerCanvas = Perspective.localToCanvas(client, playerLocal, playerWp.getPlane());
+        if (chestCanvas == null || playerCanvas == null)
+        {
+            return;
+        }
+
+        graphics.setColor(new Color(0, 255, 255, 180));
+        graphics.setStroke(new BasicStroke(2));
+        graphics.drawLine(playerCanvas.getX(), playerCanvas.getY(), chestCanvas.getX(), chestCanvas.getY());
     }
 
     @SuppressWarnings("deprecation")
