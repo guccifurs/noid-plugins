@@ -1,6 +1,7 @@
 package com.tonic.plugins.gearswapper.ui;
 
 import java.awt.Color;
+import java.awt.Font;
 
 public class Theme {
     // Core Colors
@@ -22,4 +23,9 @@ public class Theme {
     public static final Color TEXT_SECONDARY = new Color(185, 187, 190);
     public static final Color TEXT_MUTED = new Color(114, 118, 125);
     public static final Color TEXT_LINK = new Color(0, 176, 244);
+
+    // Fonts
+    public static final Font FONT_REGULAR = new Font("Segoe UI", Font.PLAIN, 12);
+    public static final Font FONT_BOLD = new Font("Segoe UI", Font.BOLD, 12);
+    public static final Font FONT_BUTTON = new Font("Segoe UI", Font.BOLD, 12);
 }

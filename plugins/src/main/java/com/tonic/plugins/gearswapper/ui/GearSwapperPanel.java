@@ -29,6 +29,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Collections;
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.Clipboard;
 import java.util.LinkedHashSet;
 import com.tonic.plugins.gearswapper.ui.triggers.TriggerPanel;
 import com.tonic.plugins.gearswapper.sdn.ScriptSDNPanel;
@@ -3082,25 +3086,41 @@ public class GearSwapperPanel extends PluginPanel {
         }
     }
 
+    // Data structure for documentation entries
+    private static class DocEntry {
+        String title;
+        String description;
+        String copyText;
+
+        DocEntry(String title, String description, String copyText) {
+            this.title = title;
+            this.description = description;
+            this.copyText = copyText;
+        }
+    }
+
     // Documentation panel for search results
-    private static class DocumentationPanel extends JPanel {
+    private class DocumentationPanel extends JPanel {
         private JPanel contentPanel;
         private JScrollPane scrollPane;
         private JTextField searchField;
+        private final List<DocEntry> allEntries = new ArrayList<>();
 
         public DocumentationPanel() {
             setLayout(new BorderLayout());
-            setBackground(ColorScheme.DARKER_GRAY_COLOR);
+            setBackground(Theme.BACKGROUND);
             setBorder(new EmptyBorder(16, 16, 16, 16));
+
+            initializeData();
 
             // Header with search
             JPanel headerPanel = new JPanel(new BorderLayout());
-            headerPanel.setOpaque(false);
+            headerPanel.setBackground(Theme.BACKGROUND);
             headerPanel.setBorder(new EmptyBorder(0, 0, 16, 0));
 
             JLabel titleLabel = new JLabel("📚 Gear Swapper Documentation");
-            titleLabel.setFont(new Font("Whitney", Font.BOLD, 16));
-            titleLabel.setForeground(Color.WHITE);
+            titleLabel.setFont(Theme.FONT_BUTTON.deriveFont(18f));
+            titleLabel.setForeground(Theme.TEXT_PRIMARY);
 
             // Search section
             JPanel searchPanel = new JPanel(new BorderLayout());
@@ -3108,54 +3128,36 @@ public class GearSwapperPanel extends PluginPanel {
             searchPanel.setBorder(new EmptyBorder(12, 0, 0, 0));
 
             JLabel searchLabel = new JLabel("🔍 Search Commands:");
-            searchLabel.setFont(new Font("Whitney", Font.BOLD, 12));
-            searchLabel.setForeground(new Color(120, 190, 255));
+            searchLabel.setFont(Theme.FONT_BOLD);
+            searchLabel.setForeground(Theme.PRIMARY);
 
             JPanel searchRow = new JPanel(new BorderLayout());
             searchRow.setOpaque(false);
             searchRow.setBorder(new EmptyBorder(8, 0, 0, 0));
 
-            searchField = new JTextField("Search (e.g., prayer, gear, spell)...");
-            searchField.setBackground(new Color(52, 53, 58));
-            searchField.setForeground(new Color(160, 170, 185));
-            searchField.setBorder(BorderFactory.createLineBorder(new Color(75, 77, 83)));
-            searchField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
-            searchField.setFont(new Font("Whitney", Font.PLAIN, 10));
+            searchField = new JTextField("Search commands...");
+            searchField.setBackground(Theme.SURFACE);
+            searchField.setForeground(Theme.TEXT_PRIMARY);
+            searchField.setCaretColor(Theme.TEXT_PRIMARY);
+            searchField.setBorder(BorderFactory.createLineBorder(Theme.BORDER));
+            searchField.setPreferredSize(new Dimension(200, 30));
+            searchField.setFont(Theme.FONT_REGULAR);
 
-            JButton searchBtn = new JButton("Search");
-            searchBtn.setBackground(new Color(76, 175, 80));
-            searchBtn.setForeground(Color.WHITE);
-            searchBtn.setFocusPainted(false);
-            searchBtn.setPreferredSize(new Dimension(70, 28));
-            searchBtn.setMaximumSize(new Dimension(70, 28));
-            searchBtn.setFont(new Font("Whitney", Font.BOLD, 10));
+            JButton searchBtn = createStyledButton("Search", Theme.PRIMARY, Theme.TEXT_PRIMARY);
+            searchBtn.setPreferredSize(new Dimension(80, 30));
             searchBtn.addActionListener(e -> performSearch());
 
-            // Add enter key support
-            searchField.addKeyListener(new KeyListener() {
+            searchField.addKeyListener(new KeyAdapter() {
                 @Override
                 public void keyPressed(KeyEvent e) {
                     if (e.getKeyCode() == KeyEvent.VK_ENTER) {
                         performSearch();
                     }
                 }
-
-                @Override
-                public void keyReleased(KeyEvent e) {
-                }
-
-                @Override
-                public void keyTyped(KeyEvent e) {
-                }
             });
 
-            JButton clearBtn = new JButton("Clear");
-            clearBtn.setBackground(new Color(158, 158, 158));
-            clearBtn.setForeground(Color.WHITE);
-            clearBtn.setFocusPainted(false);
-            clearBtn.setPreferredSize(new Dimension(60, 28));
-            clearBtn.setMaximumSize(new Dimension(60, 28));
-            clearBtn.setFont(new Font("Whitney", Font.BOLD, 10));
+            JButton clearBtn = createStyledButton("Clear", Theme.SURFACE, Theme.TEXT_PRIMARY);
+            clearBtn.setPreferredSize(new Dimension(70, 30));
             clearBtn.addActionListener(e -> {
                 searchField.setText("");
                 showAllDocumentation();
@@ -3164,7 +3166,7 @@ public class GearSwapperPanel extends PluginPanel {
             JPanel buttonPanel = new JPanel();
             buttonPanel.setOpaque(false);
             buttonPanel.add(searchBtn);
-            buttonPanel.add(Box.createHorizontalStrut(4));
+            buttonPanel.add(Box.createHorizontalStrut(5));
             buttonPanel.add(clearBtn);
 
             searchRow.add(searchField, BorderLayout.CENTER);
@@ -3176,379 +3178,226 @@ public class GearSwapperPanel extends PluginPanel {
             headerPanel.add(titleLabel, BorderLayout.NORTH);
             headerPanel.add(searchPanel, BorderLayout.CENTER);
 
-            // Content area
             contentPanel = new JPanel();
             contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-            contentPanel.setOpaque(false);
+            contentPanel.setBackground(Theme.BACKGROUND);
 
-            // Scroll pane for content
             scrollPane = new JScrollPane(contentPanel);
-            scrollPane.setOpaque(false);
-            scrollPane.getViewport().setOpaque(false);
-            scrollPane.setBorder(BorderFactory.createLineBorder(new Color(75, 77, 83)));
+            scrollPane.setBackground(Theme.BACKGROUND);
+            scrollPane.getViewport().setBackground(Theme.BACKGROUND);
+            scrollPane.setBorder(BorderFactory.createEmptyBorder());
             scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+            scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
             add(headerPanel, BorderLayout.NORTH);
             add(scrollPane, BorderLayout.CENTER);
 
-            // Show all documentation by default
             showAllDocumentation();
         }
 
+        private void initializeData() {
+            // Core Actions
+            allEntries.add(new DocEntry("Equip Item", "Equip any item by exact name", "Dragon scimitar"));
+            allEntries.add(
+                    new DocEntry("Cast Spell", "Cast any spell from standard/ancient/lunar books", "Cast:Ice Barrage"));
+            allEntries.add(new DocEntry("Prayer", "Activate or toggle any prayer", "Prayer:Piety"));
+            allEntries.add(new DocEntry("Special Attack", "Toggle special attack bar", "Special"));
+            allEntries.add(new DocEntry("Attack Target", "Attack current target immediately", "Attack"));
+            allEntries.add(new DocEntry("Stop Script", "Halt script execution for this tick", "Stop"));
+
+            // Advanced Movement
+            allEntries.add(new DocEntry("Move Tiles", "Move X tiles away/towards target", "Move:5"));
+            allEntries.add(new DocEntry("Move Under", "Move directly under target (tile 0)", "Move:0"));
+            allEntries.add(new DocEntry("Move Diagonally", "Move X tiles diagonally", "MoveDiag:3"));
+            allEntries.add(new DocEntry("Walk to Point", "Walk to specific world coordinates", "Walk:3200:3200"));
+            allEntries.add(
+                    new DocEntry("Find Target", "Target closest attackable player if none selected", "FindTarget"));
+            allEntries.add(new DocEntry("Target Hover", "Set target to player under mouse cursor", "SetHoveredTarget"));
+
+            // Utility & Logic
+            allEntries.add(new DocEntry("Log Message", "Print message to chat box", "Log:Script logic executed"));
+            allEntries.add(
+                    new DocEntry("Wait (Random)", "Pause script for random ms (converted to ticks)", "Wait:100:300"));
+            allEntries.add(new DocEntry("Wait Animation", "Wait for specific animation ID", "WaitAnim:714"));
+            allEntries.add(new DocEntry("Drop All", "Drop items matching pattern", "DropAll:Vial"));
+            allEntries.add(new DocEntry("NPC Interact", "Interact with NPC", "Npc:Banker:Bank"));
+            allEntries.add(new DocEntry("AFK Chance", "15% chance to pause script for 1-5 ticks", "RandomAfkChance"));
+            allEntries.add(new DocEntry("Tick Delay", "Wait specific number of ticks", "Tick:1"));
+
+            // Conditions - Comparison
+            allEntries.add(new DocEntry("HP Check", "Check current hitpoints", "hp < 40"));
+            allEntries.add(new DocEntry("Spec Check", "Check special attack energy", "spec >= 50"));
+            allEntries.add(new DocEntry("Prayer Check", "Check prayer points", "prayer < 20"));
+            allEntries.add(new DocEntry("Distance Check", "Check distance to target", "distance <= 3"));
+
+            // Conditions - Status
+            allEntries.add(new DocEntry("Frozen Status", "Check if YOU are frozen", "frozen"));
+            allEntries.add(new DocEntry("In Combat", "Check if you are in combat", "incombat"));
+            allEntries.add(new DocEntry("Moving", "Check if you are moving", "moving"));
+            allEntries.add(new DocEntry("Run Enabled", "Check if run energy is toggled on", "run_enabled"));
+            allEntries.add(new DocEntry("Inventory Full", "Check if inventory is full", "inventory_full"));
+
+            // Conditions - Target
+            allEntries.add(new DocEntry("Target Frozen", "Check if TARGET is frozen", "target_frozen"));
+            allEntries.add(new DocEntry("Target Exists", "Check if you have a target", "has_target"));
+            allEntries.add(new DocEntry("Target Diagonal", "Check if target is diagonal", "target_is_diagonal"));
+            allEntries.add(new DocEntry("Target Setup", "Check target overhead prayer", "targetpraying_mage"));
+            allEntries.add(new DocEntry("Target Animation", "Check target animation ID", "targetanimation_1979"));
+            allEntries.add(new DocEntry("Target Text", "Check target overhead text", "targetoverheadtext_Sit"));
+
+            // Conditions - Inventory
+            allEntries.add(new DocEntry("Has Item", "Check if item is in inventory", "hasitem_Shark"));
+            allEntries.add(new DocEntry("Item Count", "Check amount of item", "hasitemamount_Shark_3"));
+
+            // Conditions - Environment & State
+            allEntries.add(new DocEntry("Region ID", "Check current region ID", "regionid_12345"));
+            allEntries.add(new DocEntry("Varbit Check", "Check varbit value (ID_Value)", "varbit_8121_1"));
+            allEntries.add(
+                    new DocEntry("Skill Level (Below)", "Check skill level is below X", "skillbelow_hitpoints_50"));
+            allEntries.add(new DocEntry("Skill Level (Above)", "Check skill level is above X", "skillabove_magic_93"));
+            allEntries.add(new DocEntry("My Animation", "Check your animation ID", "animation_829"));
+            allEntries.add(new DocEntry("Random Chance", "Random % chance to return true", "randomchancepercent_50"));
+            allEntries.add(new DocEntry("Memory Check", "Check internal memory value", "getmemory_state_idle"));
+
+            // Syntax
+            allEntries.add(new DocEntry("If Statement", "Basic conditional block", "if frozen { Log:Frozen }"));
+            allEntries.add(
+                    new DocEntry("Else Block", "Alternative execution path", "if hp < 50 { Eat } else { Attack }"));
+            allEntries.add(new DocEntry("AND Operator", "Both must be true", "frozen && distance > 3"));
+            allEntries.add(new DocEntry("OR Operator", "Either can be true", "hp < 20 || prayer < 10"));
+            allEntries.add(new DocEntry("NOT Operator", "Invert condition", "!frozen"));
+        }
+
         private void performSearch() {
-            String query = searchField.getText().trim();
-            if (query.isEmpty() || query.equals("Search (e.g., prayer, gear, spell)...")) {
+            String query = searchField.getText().trim().toLowerCase();
+            if (query.isEmpty() || query.equals("search commands...")) {
                 showAllDocumentation();
                 return;
             }
 
-            query = query.toLowerCase().trim();
-            showSearchResults(query);
+            contentPanel.removeAll();
+            addCategoryHeader("🔍 Search Results");
+
+            boolean found = false;
+            for (DocEntry entry : allEntries) {
+                if (entry.title.toLowerCase().contains(query) ||
+                        entry.description.toLowerCase().contains(query) ||
+                        entry.copyText.toLowerCase().contains(query)) {
+                    addDocEntry(entry);
+                    found = true;
+                }
+            }
+
+            if (!found) {
+                JLabel noRes = new JLabel("No commands found matching '" + query + "'");
+                noRes.setForeground(Theme.TEXT_SECONDARY);
+                noRes.setAlignmentX(Component.LEFT_ALIGNMENT);
+                noRes.setBorder(new EmptyBorder(10, 10, 10, 10));
+                contentPanel.add(noRes);
+            }
+
+            contentPanel.revalidate();
+            contentPanel.repaint();
         }
 
         private void showAllDocumentation() {
             contentPanel.removeAll();
-
-            // ════════════════════════════════════════════════════════════════════════════════
-            // 🎯 GEAR SWAPPER SCRIPTING SYNTAX GUIDE
-            // ════════════════════════════════════════════════════════════════════════════════
-
-            addCommandSection(contentPanel, "🚀 Quick Start Syntax",
-                    "Master these patterns to create powerful scripts:", new String[] {
-                            "📦 Items: Dragon scimitar → Equips item",
-                            "✨ Spells: Cast:Ice Barrage → Casts spell",
-                            "🙏 Prayers: Prayer:piety → Activates prayer",
-                            "⚔️ Special: Special → Uses weapon special",
-                            "💬 Messages: Log:Hello → Prints to chat",
-                            "🏃 Movement: Move:5 → Move 5 tiles from target"
-                    });
-
-            addCommandSection(contentPanel, "📦 Equipment Commands",
-                    "Equip any item by name:", new String[] {
-                            "Dragon scimitar",
-                            "Armadyl godsword",
-                            "Toxic blowpipe",
-                            "Bandos chestplate",
-                            "Amulet of fury",
-                            "Barrows gloves",
-                            "Dragon boots"
-                    });
-
-            addCommandSection(contentPanel, "✨ Spell Commands",
-                    "Cast spells with Cast: prefix:", new String[] {
-                            "Cast:Ice Barrage → Ice barrage spell",
-                            "Cast:Vengeance → Vengeance spell",
-                            "Cast:Teleport to house → House teleport",
-                            "Cast:Varrock teleport → Varrock teleport"
-                    });
-
-            addCommandSection(contentPanel, "🙏 Prayer Commands",
-                    "Activate prayers with Prayer: prefix:", new String[] {
-                            "Prayer:piety → Melee prayer",
-                            "Prayer:augury → Magic prayer",
-                            "Prayer:rigour → Ranged prayer",
-                            "Prayer:protect from magic → Magic protection",
-                            "Prayer:protect from melee → Melee protection",
-                            "Prayer:protect from ranged → Ranged protection"
-                    });
-
-            addCommandSection(contentPanel, "⚔️ Combat & Utility Commands",
-                    "Essential combat actions:", new String[] {
-                            "Special → Activate weapon special attack",
-                            "Attack → Attack current target (works with Tick:N)",
-                            "Log:Your message → Print custom message",
-                            "Move:0 → Walk under target",
-                            "Move:5 → Move 5 tiles away from target",
-                            "MoveDiag:3 → Move 3 tiles diagonally away",
-                            "Tick:2 → Wait 2 game ticks"
-                    });
-
-            addCommandSection(contentPanel, "🔍 Condition Variables",
-                    "Use these in if statements:", new String[] {
-                            "frozen → Player is frozen",
-                            "target_frozen → Target is frozen",
-                            "has_target → You have a target selected",
-                            "hp → Current hitpoints (number)",
-                            "spec → Special attack energy (0-100)",
-                            "prayer → Current prayer points",
-                            "target_distance → Distance to target in tiles",
-                            "player_frozen_ticks → Ticks until player unfrozen",
-                            "target_frozen_ticks → Ticks until target unfrozen",
-                            "ticks_since_swap → Ticks since last gear swap"
-                    });
-
-            addCommandSection(contentPanel, "⚖️ Comparison Operators",
-                    "Compare variables with these:", new String[] {
-                            "hp < 40 → HP below 40",
-                            "spec >= 50 → Special energy 50% or more",
-                            "target_distance <= 3 → Target 3 tiles or closer",
-                            "target_distance > 3 → Target farther than 3 tiles",
-                            "player_frozen_ticks > 10 → Frozen for more than 10 ticks"
-                    });
-
-            addCommandSection(contentPanel, "🔗 Logical Operators",
-                    "Combine multiple conditions:", new String[] {
-                            "&& → AND (both must be true)",
-                            "|| → OR (either can be true)",
-                            "! → NOT (inverts condition)",
-                            "frozen && target_distance > 3 → Frozen and target far",
-                            "hp < 40 || spec >= 50 → Low HP OR high spec",
-                            "!frozen → True when NOT frozen"
-                    });
-
-            addCommandSection(contentPanel, "📝 Conditional Statements",
-                    "If-then-else logic:", new String[] {
-                            "if frozen { Log: Frozen! }",
-                            "if hp < 40 { Special }",
-                            "if target_frozen { Armadyl godsword } else { Dragon claws }",
-                            "if frozen && target_distance > 3 { Log: Danger! }"
-                    });
-
-            addCommandSection(contentPanel, "📄 Multi-line Scripts",
-                    "Complex logic with multiple actions:", new String[] {
-                            "if hp < 40 {",
-                            "    Log: Emergency!",
-                            "    Special",
-                            "    Dragon claws",
-                            "} else {",
-                            "    Log: Safe",
-                            "    Toxic blowpipe",
-                            "}"
-                    });
-
-            addCommandSection(contentPanel, "💡 Pro Tips",
-                    "Advanced scripting techniques:", new String[] {
-                            "• Chain items: Dragon scimitar → Dragon dagger → Special",
-                            "• Combine magic: Ice Barrage → Move:3 → Dragon claws",
-                            "• Auto-eat: if hp < 60 { inv:eat shark }",
-                            "• Prayer switching: prayer:piety → prayer:protect from magic",
-                            "• Tick-perfect: Tick:1 → Move:0 → Special"
-                    });
-
+            renderCategory("🚀 Core Actions", 0, 6);
+            renderCategory("🏃 Movement & Targeting", 6, 12);
+            renderCategory("🛠️ Utility & Logic", 12, 19);
+            renderCategory("⚖️ Conditions - Comparison", 19, 23);
+            renderCategory("❤️ Conditions - Status", 23, 28);
+            renderCategory("🎯 Conditions - Target", 28, 34);
+            renderCategory("🎒 Conditions - Inventory", 34, 36);
+            renderCategory("🌍 Conditions - Environment", 36, 43);
+            renderCategory("📝 Syntax & Operators", 43, allEntries.size());
             contentPanel.revalidate();
             contentPanel.repaint();
         }
 
-        private void showSearchResults(String query) {
-            contentPanel.removeAll();
-
-            // Prayer commands
-            if (query.contains("pray")) {
-                addCommandSection(contentPanel, "🙏 Prayer Commands",
-                        "Activate prayers with prefix 'Prayer:'", new String[] {
-                                "Prayer:piety → Melee combat prayer",
-                                "Prayer:augury → Magic combat prayer",
-                                "Prayer:rigour → Ranged combat prayer",
-                                "Prayer:protect from magic → Magic protection",
-                                "Prayer:protect from melee → Melee protection",
-                                "Prayer:protect from ranged → Ranged protection"
-                        });
+        private void renderCategory(String title, int start, int end) {
+            addCategoryHeader(title);
+            for (int i = start; i < end && i < allEntries.size(); i++) {
+                addDocEntry(allEntries.get(i));
             }
-
-            // Gear commands
-            if (query.contains("gear") || query.contains("wear") || query.contains("equip")) {
-                addCommandSection(contentPanel, "📦 Equipment Commands",
-                        "Equip items by name (no prefix needed):", new String[] {
-                                "Dragon scimitar → Equips Dragon scimitar",
-                                "Bandos chestplate → Equips Bandos chestplate",
-                                "Dragon boots → Equips Dragon boots",
-                                "Amulet of fury → Equips Amulet of fury",
-                                "Barrows gloves → Equips Barrows gloves",
-                                "Armadyl godsword → Equips Armadyl godsword"
-                        });
-            }
-
-            // Spell commands
-            if (query.contains("spell") || query.contains("magic")) {
-                addCommandSection(contentPanel, "✨ Spell Commands",
-                        "Cast spells with prefix 'Cast:'", new String[] {
-                                "Cast:Ice Barrage → Casts Ice Barrage",
-                                "Cast:Vengeance → Casts Vengeance",
-                                "Cast:Teleport to house → House teleport",
-                                "Cast:Varrock teleport → Varrock teleport",
-                                "Cast:Wind Strike → Basic wind spell",
-                                "Cast:Fire Bolt → Fire bolt spell"
-                        });
-            }
-
-            // Inventory commands
-            if (query.contains("inv") || query.contains("inventory")) {
-                addCommandSection(contentPanel, "🎒 Inventory Commands",
-                        "Use inventory items with prefix 'inv:'", new String[] {
-                                "inv:eat shark → Eats Shark from inventory",
-                                "inv:drink super restore → Drinks Super Restore",
-                                "inv:drink prayer potion → Drinks Prayer potion",
-                                "inv:eat karambwan → Eats Karambwan",
-                                "inv:drink combat potion → Drinks Combat potion"
-                        });
-            }
-
-            // Special commands
-            if (query.contains("special") || query.contains("spec")) {
-                addCommandSection(contentPanel, "⚔️ Special Attack Commands",
-                        "Use special attacks:", new String[] {
-                                "Special → Activates weapon special attack",
-                                "Works with: Dragon dagger, Dragon claws, Abyssal whip",
-                                "Works with: Bandos godsword, Armadyl godsword",
-                                "Note: Must have weapon equipped and spec energy"
-                        });
-            }
-
-            // Movement commands
-            if (query.contains("move") || query.contains("walk")) {
-                addCommandSection(contentPanel, "🏃 Movement Commands",
-                        "Control positioning with Move commands:", new String[] {
-                                "Move:0 → Walk under target (same tile)",
-                                "Move:5 → Move 5 tiles directly away",
-                                "MoveDiag:3 → Move 3 tiles diagonally away",
-                                "Useful for: Avoiding specs, positioning"
-                        });
-            }
-
-            // Condition commands
-            if (query.contains("if") || query.contains("condition") || query.contains("hp")) {
-                addCommandSection(contentPanel, "🔍 Conditional Logic",
-                        "If statements for smart automation:", new String[] {
-                                "if frozen { Log: Frozen! }",
-                                "if hp < 40 { Special }",
-                                "if target_frozen { Armadyl godsword }",
-                                "if spec >= 50 { Dragon claws }",
-                                "Combine: if hp < 40 && spec >= 50 { Special }"
-                        });
-            }
-
-            // Tick commands
-            if (query.contains("tick") || query.contains("delay")) {
-                addCommandSection(contentPanel, "⏱️ Timing Commands",
-                        "Control execution timing:", new String[] {
-                                "Tick:1 → Wait 1 game tick (~0.6s)",
-                                "Tick:2 → Wait 2 game ticks (~1.2s)",
-                                "Use for: Perfect combos, spell timing"
-                        });
-            }
-
-            // Log commands
-            if (query.contains("log") || query.contains("message")) {
-                addCommandSection(contentPanel, "💬 Message Commands",
-                        "Print custom messages:", new String[] {
-                                "Log:Hello → Prints 'Hello' to chat",
-                                "Log:Low HP! → Custom alerts",
-                                "Log:Switched gear → Action confirmation"
-                        });
-            }
-
-            // Quick prayers
-            if (query.contains("quick")) {
-                addCommandSection(contentPanel, "🙏 Quick Prayer Commands",
-                        "Toggle quick prayers:", new String[] {
-                                "quickprayer:on → Turns on quick prayers",
-                                "quickprayer:off → Turns off quick prayers",
-                                "quickprayer:toggle → Toggles quick prayers"
-                        });
-            }
-
-            // Run commands
-            if (query.contains("run")) {
-                addCommandSection(contentPanel, "🏃 Run Commands",
-                        "Control run energy:", new String[] {
-                                "run:on → Turns on run",
-                                "run:off → Turns off run",
-                                "run:toggle → Toggles run mode"
-                        });
-            }
-
-            // If no specific matches, show general help
-            boolean foundMatch = query.contains("pray") || query.contains("gear") || query.contains("wear") ||
-                    query.contains("equip") || query.contains("spell") || query.contains("magic") ||
-                    query.contains("inv") || query.contains("inventory") || query.contains("special") ||
-                    query.contains("spec") || query.contains("quick") || query.contains("run") ||
-                    query.contains("move") || query.contains("walk") || query.contains("if") ||
-                    query.contains("condition") || query.contains("hp") || query.contains("tick") ||
-                    query.contains("delay") || query.contains("log") || query.contains("message");
-
-            if (!foundMatch) {
-                addCommandSection(contentPanel, "🔍 Search Help",
-                        "Try searching for:", new String[] {
-                                "pray → Prayer commands",
-                                "gear → Equipment commands",
-                                "spell → Magic spells",
-                                "inv → Inventory items",
-                                "special → Special attacks",
-                                "move → Movement commands",
-                                "if → Conditional logic",
-                                "tick → Timing controls",
-                                "log → Message printing"
-                        });
-            }
-
-            contentPanel.revalidate();
-            contentPanel.repaint();
+            contentPanel.add(Box.createVerticalStrut(15));
         }
 
-        private void addCommandSection(JPanel contentPanel, String title, String description, String[] commands) {
-            // Section header
-            JPanel sectionHeader = new JPanel(new BorderLayout());
-            sectionHeader.setOpaque(false);
-            sectionHeader.setBorder(new EmptyBorder(16, 0, 8, 0));
+        private void addCategoryHeader(String title) {
+            JPanel panel = new JPanel(new BorderLayout());
+            panel.setBackground(Theme.BACKGROUND);
+            panel.setBorder(new EmptyBorder(5, 5, 5, 5));
+            JLabel label = new JLabel(title);
+            label.setFont(Theme.FONT_BOLD.deriveFont(14f));
+            label.setForeground(Theme.PRIMARY);
+            panel.add(label, BorderLayout.CENTER);
+            panel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+            contentPanel.add(panel);
+        }
 
-            JLabel titleLabel = new JLabel(title);
-            titleLabel.setFont(new Font("Whitney", Font.BOLD, 14));
-            titleLabel.setForeground(new Color(120, 190, 255));
-
-            JLabel descLabel = new JLabel(description);
-            descLabel.setFont(new Font("Whitney", Font.PLAIN, 11));
-            descLabel.setForeground(new Color(170, 175, 185));
-
-            sectionHeader.add(titleLabel, BorderLayout.NORTH);
-            sectionHeader.add(descLabel, BorderLayout.CENTER);
-
-            contentPanel.add(sectionHeader);
-
-            // Commands list
-            for (String command : commands) {
-                JPanel commandPanel = new JPanel(new BorderLayout());
-                commandPanel.setOpaque(false);
-                commandPanel.setBorder(new EmptyBorder(4, 16, 4, 16));
-                commandPanel.setBackground(new Color(52, 53, 58));
-
-                JLabel commandLabel = new JLabel(command);
-                commandLabel.setFont(new Font("Whitney", Font.PLAIN, 11));
-                commandLabel.setForeground(Color.WHITE);
-                commandLabel.setBorder(new EmptyBorder(8, 12, 8, 12));
-
-                JButton copyBtn = new JButton("📋");
-                copyBtn.setBackground(new Color(76, 175, 80));
-                copyBtn.setForeground(Color.WHITE);
-                copyBtn.setFocusPainted(false);
-                copyBtn.setPreferredSize(new Dimension(30, 22));
-                copyBtn.setMaximumSize(new Dimension(30, 22));
-                copyBtn.setFont(new Font("Whitney", Font.BOLD, 9));
-                copyBtn.setToolTipText("Copy command");
-                copyBtn.addActionListener(e -> {
-                    // Copy command to clipboard
-                    String cmdText = command.split(" - ")[0]; // Get just the command part
-                    copyToClipboard(cmdText);
+        private void addDocEntry(DocEntry entry) {
+            JPanel panel = new JPanel(new BorderLayout(10, 0));
+            panel.setBackground(Theme.SURFACE);
+            panel.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createMatteBorder(0, 0, 1, 0, Theme.BORDER),
+                    new EmptyBorder(8, 10, 8, 5)));
+            panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 55));
+            panel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            JPanel textPanel = new JPanel(new GridLayout(2, 1));
+            textPanel.setOpaque(false);
+            JLabel titleLabel = new JLabel(entry.title);
+            titleLabel.setFont(Theme.FONT_BOLD);
+            titleLabel.setForeground(Theme.TEXT_PRIMARY);
+            JLabel descLabel = new JLabel(entry.description);
+            descLabel.setFont(Theme.FONT_REGULAR.deriveFont(11f));
+            descLabel.setForeground(Theme.TEXT_SECONDARY);
+            textPanel.add(titleLabel);
+            textPanel.add(descLabel);
+            JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+            actionPanel.setOpaque(false);
+            JLabel codeLabel = new JLabel(" " + entry.copyText + " ");
+            codeLabel.setFont(new Font("Consolas", Font.PLAIN, 12));
+            codeLabel.setForeground(Theme.SUCCESS);
+            codeLabel.setBackground(Theme.BACKGROUND);
+            codeLabel.setOpaque(true);
+            codeLabel.setBorder(BorderFactory.createLineBorder(Theme.BORDER));
+            JButton copyBtn = createStyledButton("Copy", Theme.PRIMARY, Theme.TEXT_PRIMARY);
+            copyBtn.setFont(Theme.FONT_REGULAR.deriveFont(10f));
+            copyBtn.setPreferredSize(new Dimension(50, 24));
+            copyBtn.setFocusable(false);
+            copyBtn.addActionListener(e -> {
+                StringSelection stringSelection = new StringSelection(entry.copyText);
+                Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                clipboard.setContents(stringSelection, null);
+                String originalText = copyBtn.getText();
+                copyBtn.setText("Copied!");
+                copyBtn.setBackground(Theme.SUCCESS);
+                Timer timer = new Timer(1000, evt -> {
+                    copyBtn.setText(originalText);
+                    copyBtn.setBackground(Theme.PRIMARY);
                 });
+                timer.setRepeats(false);
+                timer.start();
+            });
+            actionPanel.add(codeLabel);
+            actionPanel.add(Box.createHorizontalStrut(8));
+            actionPanel.add(copyBtn);
+            panel.add(textPanel, BorderLayout.CENTER);
+            panel.add(actionPanel, BorderLayout.EAST);
+            panel.addMouseListener(new MouseAdapter() {
+                public void mouseEntered(MouseEvent e) {
+                    panel.setBackground(Theme.SURFACE_HOVER);
+                }
 
-                commandPanel.add(commandLabel, BorderLayout.CENTER);
-                commandPanel.add(copyBtn, BorderLayout.EAST);
-
-                contentPanel.add(commandPanel);
-                contentPanel.add(Box.createVerticalStrut(4));
-            }
-        }
-
-        private void copyToClipboard(String text) {
-            try {
-                java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
-                        new java.awt.datatransfer.StringSelection(text), null);
-            } catch (Exception e) {
-                // Clipboard copy failed
-            }
+                public void mouseExited(MouseEvent e) {
+                    panel.setBackground(Theme.SURFACE);
+                }
+            });
+            contentPanel.add(panel);
         }
     }
 
-    // Simple Gear Manager Panel - Working version
     private class SimpleGearManagerPanel extends JPanel {
         private Map<String, GearSwapperPanel.GearSet> gearSets;
         private ConfigManager configManager;
@@ -4865,6 +4714,7 @@ public class GearSwapperPanel extends PluginPanel {
                 }
             }
         }
+
     }
 
     private void openRawTextEditor(JFrame parentFrame, JTextArea sourceArea, GearSwapperPanel.LoadoutData data,
