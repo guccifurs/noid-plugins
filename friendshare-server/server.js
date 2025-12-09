@@ -82,6 +82,8 @@ function handleConnect(ws, { discordName, rsn }, ip, setDiscord) {
         streaming: false
     });
 
+    console.log(`[Spectate] User connected: ${discordName} (${rsn}) from ${ip}`);
+
     const isAdminUser = isAdmin(discordName);
     ws.send(JSON.stringify({
         type: 'connected',

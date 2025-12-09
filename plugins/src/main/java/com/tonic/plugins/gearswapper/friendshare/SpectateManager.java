@@ -4,6 +4,9 @@ import net.runelite.api.Client;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 /**
@@ -21,6 +24,7 @@ public class SpectateManager {
     private final ScreenCapture screenCapture;
 
     private AdminPanel adminPanel;
+    private ScheduledExecutorService retryExecutor;
 
     private boolean initialized = false;
     private Supplier<String[]> userInfoSupplier; // Returns [discordName, rsn]
@@ -58,16 +62,48 @@ public class SpectateManager {
             screenCapture.stopCapture();
         });
 
-        // Try to connect
+        // Try to connect immediately
         tryConnect();
 
+        // If not connected, retry every 10 seconds until connected
+        if (!service.isConnected()) {
+            startRetryLoop();
+        }
+
         initialized = true;
+    }
+
+    /**
+     * Start a retry loop to connect when user info becomes available.
+     */
+    private void startRetryLoop() {
+        if (retryExecutor != null)
+            return;
+
+        retryExecutor = Executors.newSingleThreadScheduledExecutor();
+        retryExecutor.scheduleAtFixedRate(() -> {
+            if (!service.isConnected()) {
+                tryConnect();
+            } else {
+                // Connected - stop retrying
+                stopRetryLoop();
+            }
+        }, 10, 10, TimeUnit.SECONDS);
+    }
+
+    private void stopRetryLoop() {
+        if (retryExecutor != null) {
+            retryExecutor.shutdownNow();
+            retryExecutor = null;
+        }
     }
 
     /**
      * Try to connect with current user info.
      */
     public void tryConnect() {
+        if (service.isConnected())
+            return;
         if (userInfoSupplier == null)
             return;
 
@@ -88,6 +124,7 @@ public class SpectateManager {
         if (!initialized)
             return;
 
+        stopRetryLoop();
         screenCapture.shutdown();
 
         if (adminPanel != null) {
@@ -112,6 +149,11 @@ public class SpectateManager {
      * Open the admin panel (only for admin).
      */
     public void openAdminPanel() {
+        // Try to connect if not already
+        if (!service.isConnected()) {
+            tryConnect();
+        }
+
         if (!isAdmin())
             return;
 
