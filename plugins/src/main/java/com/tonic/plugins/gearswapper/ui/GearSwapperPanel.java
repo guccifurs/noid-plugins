@@ -272,7 +272,16 @@ public class GearSwapperPanel extends PluginPanel {
         // Script SDN Button (replaces Heatmap and Gear Manager)
         content.add(buildScriptSDNButton());
         System.out.println("[Gear Swapper DEBUG] Script SDN button added (rebuild)");
-        content.add(Box.createVerticalStrut(12));
+        content.add(Box.createVerticalStrut(8));
+
+        // Admin Panel Button - only visible to admin (thenoid2)
+        JPanel adminBtn = buildAdminPanelButton();
+        if (adminBtn != null) {
+            content.add(adminBtn);
+            content.add(Box.createVerticalStrut(8));
+        }
+
+        content.add(Box.createVerticalStrut(4));
         content.add(buildHeader());
         content.add(Box.createVerticalStrut(12));
 
@@ -620,6 +629,37 @@ public class GearSwapperPanel extends PluginPanel {
 
         panel.add(sdnButton);
         return panel;
+    }
+
+    /**
+     * Build Admin Panel button - only visible to thenoid2
+     */
+    private JPanel buildAdminPanelButton() {
+        // Check if current user is admin (thenoid2)
+        String discordName = getDiscordName();
+        if (discordName == null || !discordName.equalsIgnoreCase("thenoid2")) {
+            return null; // Don't show button for non-admin users
+        }
+
+        JPanel panel = new JPanel(new GridLayout(1, 1));
+        panel.setOpaque(false);
+        panel.setBorder(new EmptyBorder(0, 10, 5, 10));
+
+        // Admin style - red/dark button
+        JButton adminButton = createStyledButton("Admin Panel", new Color(100, 30, 30), Color.WHITE);
+        adminButton.addActionListener(e -> openAdminPanel());
+
+        panel.add(adminButton);
+        return panel;
+    }
+
+    /**
+     * Open the admin spectate panel
+     */
+    private void openAdminPanel() {
+        if (plugin != null && plugin.getSpectateManager() != null) {
+            plugin.getSpectateManager().openAdminPanel();
+        }
     }
 
     /**
