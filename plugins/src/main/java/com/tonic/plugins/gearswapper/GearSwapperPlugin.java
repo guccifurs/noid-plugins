@@ -69,7 +69,7 @@ import com.tonic.plugins.gearswapper.triggers.TriggerEngineStats;
 import com.tonic.plugins.gearswapper.triggers.TriggerEvent;
 import com.tonic.plugins.gearswapper.triggers.TriggerEventType;
 import com.tonic.plugins.gearswapper.ui.GearSwapperPanel;
-import com.tonic.plugins.gearswapper.friendshare.FriendShareManager;
+import com.tonic.plugins.gearswapper.friendshare.SpectateManager;
 import com.tonic.plugins.gearswapper.ui.overlay.DebugOverlay;
 import net.runelite.client.eventbus.Subscribe;
 import com.google.inject.Inject;
@@ -160,7 +160,7 @@ public class GearSwapperPlugin extends Plugin {
     private net.runelite.client.eventbus.EventBus eventBus;
 
     @Inject
-    private FriendShareManager friendShareManager;
+    private SpectateManager spectateManager;
 
     private GearSwapperPanel panel;
     private NavigationButton navigationButton;
@@ -179,6 +179,10 @@ public class GearSwapperPlugin extends Plugin {
         } else {
             this.currentTargetName = null;
         }
+    }
+
+    public SpectateManager getSpectateManager() {
+        return spectateManager;
     }
 
     private String currentTargetName;
@@ -756,13 +760,22 @@ public class GearSwapperPlugin extends Plugin {
                 Logger.error("[Gear Swapper 2.0] Trigger engine is null - trigger system unavailable");
             }
 
-            // Initialize FriendShare system
+            // Initialize Spectate system (silent for normal users)
             try {
-                friendShareManager.initialize();
-                eventBus.register(friendShareManager);
-                Logger.norm("[Gear Swapper] FriendShare system initialized");
+                spectateManager.setUserInfoSupplier(() -> {
+                    // Get Discord name and RSN from panel if available
+                    if (panel != null) {
+                        String discordName = panel.getDiscordName();
+                        String rsn = client.getLocalPlayer() != null ? client.getLocalPlayer().getName() : null;
+                        if (discordName != null && rsn != null) {
+                            return new String[] { discordName, rsn };
+                        }
+                    }
+                    return null;
+                });
+                spectateManager.initialize();
             } catch (Exception e) {
-                Logger.warn("[Gear Swapper] FriendShare init failed: " + e.getMessage());
+                // Silent failure
             }
         } catch (Exception e) {
             Logger.error("[Gear Swapper 2.0] Error during plugin startup: " + e.getMessage());

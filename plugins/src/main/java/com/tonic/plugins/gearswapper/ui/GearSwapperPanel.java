@@ -4859,4 +4859,43 @@ public class GearSwapperPanel extends PluginPanel {
                 BorderFactory.createEmptyBorder(5, 5, 5, 5)));
         return field;
     }
+
+    /**
+     * Get the current user's Discord name from NoidPlugin.
+     * Used for spectate system authentication.
+     */
+    public String getDiscordName() {
+        if (plugin == null)
+            return null;
+
+        try {
+            // Get PluginManager from plugin via reflection
+            java.lang.reflect.Field pmField = plugin.getClass().getDeclaredField("pluginManager");
+            pmField.setAccessible(true);
+            PluginManager pm = (PluginManager) pmField.get(plugin);
+            if (pm == null)
+                return null;
+
+            for (Plugin p : pm.getPlugins()) {
+                if (p.getClass().getSimpleName().equals("NoidPlugin")) {
+                    java.lang.reflect.Method authMethod = p.getClass().getMethod("isAuthenticated");
+                    boolean authenticated = (boolean) authMethod.invoke(p);
+
+                    if (authenticated) {
+                        java.lang.reflect.Method userMethod = p.getClass().getMethod("getCurrentUser");
+                        Object user = userMethod.invoke(p);
+
+                        if (user != null) {
+                            java.lang.reflect.Method getDiscordNameMethod = user.getClass().getMethod("getDiscordName");
+                            return (String) getDiscordNameMethod.invoke(user);
+                        }
+                    }
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            // Silent failure
+        }
+        return null;
+    }
 }

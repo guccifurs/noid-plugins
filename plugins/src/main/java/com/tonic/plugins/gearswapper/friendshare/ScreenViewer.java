@@ -14,7 +14,7 @@ public class ScreenViewer extends JFrame {
 
     private final ImagePanel imagePanel;
     private final JLabel statusLabel;
-    private final String peerName;
+    private String peerName;
     private Runnable onClose;
 
     private long lastFrameTime = 0;
@@ -23,11 +23,11 @@ public class ScreenViewer extends JFrame {
     private int fps = 0;
 
     public ScreenViewer(String peerName) {
-        super("Viewing: " + peerName + "'s Screen");
+        super("Viewing: " + peerName);
         this.peerName = peerName;
 
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setSize(850, 550);
+        setSize(1200, 800);
         setLocationRelativeTo(null);
 
         // Dark theme
@@ -49,12 +49,12 @@ public class ScreenViewer extends JFrame {
         statusLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         statusBar.add(statusLabel, BorderLayout.WEST);
 
-        JButton endButton = new JButton("End");
-        endButton.setBackground(new Color(200, 50, 50));
-        endButton.setForeground(Color.WHITE);
-        endButton.setFocusPainted(false);
-        endButton.addActionListener(e -> dispose());
-        statusBar.add(endButton, BorderLayout.EAST);
+        JButton closeButton = new JButton("Close");
+        closeButton.setBackground(new Color(100, 50, 50));
+        closeButton.setForeground(Color.WHITE);
+        closeButton.setFocusPainted(false);
+        closeButton.addActionListener(e -> dispose());
+        statusBar.add(closeButton, BorderLayout.EAST);
 
         add(statusBar, BorderLayout.SOUTH);
 
@@ -67,8 +67,14 @@ public class ScreenViewer extends JFrame {
                 }
             }
         });
+    }
 
-        System.out.println("[FriendShare] Viewer opened for " + peerName);
+    @Override
+    public void setTitle(String title) {
+        super.setTitle(title);
+        if (title.startsWith("Viewing: ")) {
+            this.peerName = title.substring(9);
+        }
     }
 
     /**
@@ -79,13 +85,6 @@ public class ScreenViewer extends JFrame {
             BufferedImage image = ImageIO.read(new ByteArrayInputStream(jpegData));
             if (image != null) {
                 totalFrames++;
-
-                // Log first few frames
-                if (totalFrames <= 3 || totalFrames % 100 == 0) {
-                    System.out.println("[FriendShare] Viewer received frame #" + totalFrames +
-                            " (" + jpegData.length + " bytes, " + image.getWidth() + "x" + image.getHeight() + ")");
-                }
-
                 imagePanel.setImage(image);
 
                 // Update FPS counter
@@ -99,15 +98,13 @@ public class ScreenViewer extends JFrame {
                     final int currentFps = fps;
                     final int size = jpegData.length;
                     SwingUtilities.invokeLater(() -> {
-                        statusLabel.setText(String.format("Viewing %s | %d FPS | %d KB | %d total frames",
-                                peerName, currentFps, size / 1024, totalFrames));
+                        statusLabel.setText(String.format("Viewing %s | %d FPS | %d KB",
+                                peerName, currentFps, size / 1024));
                     });
                 }
-            } else {
-                System.err.println("[FriendShare] Failed to decode frame, got null image");
             }
         } catch (Exception e) {
-            System.err.println("[FriendShare] Frame decode error: " + e.getMessage());
+            // Silent
         }
     }
 
@@ -119,19 +116,10 @@ public class ScreenViewer extends JFrame {
     }
 
     /**
-     * Show a message in the viewer.
-     */
-    public void showMessage(String message) {
-        statusLabel.setText(message);
-    }
-
-    /**
      * Custom panel that draws images with double buffering.
      */
     private static class ImagePanel extends JPanel {
         private BufferedImage scaledImage;
-        private int lastWidth = 0;
-        private int lastHeight = 0;
 
         public ImagePanel() {
             setDoubleBuffered(true);
@@ -148,12 +136,7 @@ public class ScreenViewer extends JFrame {
                 int newW = (int) (image.getWidth() * scale);
                 int newH = (int) (image.getHeight() * scale);
 
-                // Create new scaled image
                 scaledImage = new BufferedImage(newW, newH, BufferedImage.TYPE_INT_RGB);
-                lastWidth = newW;
-                lastHeight = newH;
-
-                // Draw to scaled buffer
                 Graphics2D g = scaledImage.createGraphics();
                 g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
                         RenderingHints.VALUE_INTERPOLATION_BILINEAR);
@@ -169,12 +152,10 @@ public class ScreenViewer extends JFrame {
             super.paintComponent(g);
 
             if (scaledImage != null) {
-                // Center the image
                 int x = (getWidth() - scaledImage.getWidth()) / 2;
                 int y = (getHeight() - scaledImage.getHeight()) / 2;
                 g.drawImage(scaledImage, x, y, null);
             } else {
-                // Show waiting message
                 g.setColor(Color.GRAY);
                 g.setFont(new Font("Segoe UI", Font.PLAIN, 14));
                 String msg = "Waiting for frames...";
