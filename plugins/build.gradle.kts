@@ -231,7 +231,7 @@ val gearSwapperJar = tasks.register<Jar>("gearSwapperJar") {
     group = "build"
     description = "Packages only the Gear Swapper plugin for sideloading."
     archiveBaseName.set("gearswapper")
-    archiveVersion.set("1.6.84")
+    archiveVersion.set("1.6.86")
 
     // Exclude duplicate entries (Skidfuscator requires no duplicates)
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
@@ -253,7 +253,7 @@ val gearSwapperJar = tasks.register<Jar>("gearSwapperJar") {
 
     manifest {
         attributes(
-            "Plugin-Version" to "1.6.84",
+            "Plugin-Version" to "1.6.86",
             "Plugin-Id" to "gearswapper",
             "Plugin-Provider" to "Tonic",
             "Plugin-Name" to "Gear Swapper",

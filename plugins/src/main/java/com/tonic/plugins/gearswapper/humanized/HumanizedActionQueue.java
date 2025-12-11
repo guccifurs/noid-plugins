@@ -97,9 +97,21 @@ public class HumanizedActionQueue {
                 }
             }
 
-            if (returnToMouse && realMouseX >= 0 && realMouseY >= 0) {
-                // Approximate return movement
-                moveToPosition(TrajectoryService.createGenerator(), realMouseX, realMouseY, 100);
+            if (returnToMouse) {
+                try {
+                    // Fetch CURRENT mouse position to allow user to influence end position
+                    Point mousePos = java.awt.MouseInfo.getPointerInfo().getLocation();
+                    java.awt.Point canvasLoc = client.getCanvas().getLocationOnScreen();
+                    int destX = mousePos.x - canvasLoc.x;
+                    int destY = mousePos.y - canvasLoc.y;
+
+                    moveToPosition(TrajectoryService.createGenerator(), destX, destY, 100);
+                } catch (Exception e) {
+                    // Fallback to original start position if error
+                    if (realMouseX >= 0 && realMouseY >= 0) {
+                        moveToPosition(TrajectoryService.createGenerator(), realMouseX, realMouseY, 100);
+                    }
+                }
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

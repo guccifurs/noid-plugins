@@ -3084,13 +3084,19 @@ public class GearSwapperPlugin extends Plugin {
                     Logger.norm("[Gear Swapper] No inventory items matched pattern: " + itemName);
 
                     // Timing guard: if this is the first attempt, retry once on the next tick
-                    if (!isRetry) {
-                        int targetTick = tickCounter + 1;
-                        Logger.norm("[Gear Swapper] Scheduling one-tick retry for pattern: " + itemName + " at tick "
-                                + targetTick);
-                        scheduledScriptTasks.add(
-                                new ScriptTask(targetTick, () -> equipItem(itemName, true), "Retry equip " + itemName));
-                    }
+                    // User requested removal of this logic due to log spam for already-equipped or
+                    // missing items.
+                    /*
+                     * if (!isRetry) {
+                     * int targetTick = tickCounter + 1;
+                     * Logger.norm("[Gear Swapper] Scheduling one-tick retry for pattern: " +
+                     * itemName + " at tick "
+                     * + targetTick);
+                     * scheduledScriptTasks.add(
+                     * new ScriptTask(targetTick, () -> equipItem(itemName, true), "Retry equip " +
+                     * itemName));
+                     * }
+                     */
                 }
             };
 
