@@ -1,5 +1,5 @@
 Manifest-Version: 1.0
-Plugin-Version: 1.7.1
+Plugin-Version: 1.7.2
 Plugin-Id: gearswapper
 Plugin-Provider: Tonic
 Plugin-Name: Gear Swapper

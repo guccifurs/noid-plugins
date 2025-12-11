@@ -84,7 +84,12 @@ public class HumanizedActionQueue {
             return;
         }
 
-        Logger.norm("[HumanizedQueue] [DEBUG] Starting execution loop. Items in queue: " + pendingActions.size());
+        // CRITICAL: Calculate absolute deadline at START to guarantee 1-tick completion
+        final long startTime = System.currentTimeMillis();
+        final long deadline = startTime + availableMs;
+
+        Logger.norm("[HumanizedQueue] [DEBUG] Starting execution loop. Items in queue: " + pendingActions.size()
+                + ", deadline in " + availableMs + "ms");
 
         try {
             // Keep processing until queue is empty (handles items added during execution)
@@ -99,18 +104,47 @@ public class HumanizedActionQueue {
 
                 if (actions != null) {
                     Logger.norm("[HumanizedQueue] [DEBUG] Drained batch of " + actions.size() + " actions.");
-                    int delayBetweenActions = actions.size() > 0 ? availableMs / actions.size() : 0;
                     TrajectoryGenerator generator = TrajectoryService.createGenerator();
 
                     for (int i = 0; i < actions.size(); i++) {
                         HumanizedAction action = actions.get(i);
-                        if (action.hasTargetPosition()) {
-                            Point target = action.getTargetPosition();
-                            moveToPosition(generator, target.x, target.y, delayBetweenActions);
+
+                        // Calculate remaining time and time per remaining action
+                        long now = System.currentTimeMillis();
+                        long remainingMs = deadline - now;
+                        int remainingActions = actions.size() - i;
+                        int msPerAction = remainingActions > 0 ? (int) (remainingMs / remainingActions) : 0;
+
+                        // If running critically low on time (<50ms remaining), execute all remaining
+                        // actions instantly
+                        if (remainingMs < 50) {
+                            Logger.norm("[HumanizedQueue] [DEBUG] CRITICAL: Only " + remainingMs
+                                    + "ms left! Executing remaining " + remainingActions + " actions instantly.");
+                            for (int j = i; j < actions.size(); j++) {
+                                actions.get(j).execute();
+                            }
+                            break; // Exit action loop
                         }
+
+                        // Move mouse if we have enough time
+                        if (action.hasTargetPosition() && msPerAction >= 30) {
+                            Point target = action.getTargetPosition();
+                            moveToPosition(generator, target.x, target.y, msPerAction);
+                        } else if (action.hasTargetPosition()) {
+                            // Not enough time for trajectory, teleport instead
+                            Point target = action.getTargetPosition();
+                            currentX = target.x;
+                            currentY = target.y;
+                            dispatchMouseMove(client.getCanvas(), target.x, target.y);
+                            if (pathListener != null)
+                                pathListener.onPoint(target.x, target.y);
+                        }
+
                         action.execute();
-                        if (i < actions.size() - 1 && delayBetweenActions > 0) {
-                            Thread.sleep(Math.min(20, delayBetweenActions / 4));
+
+                        // Tiny delay between actions only if we have time
+                        if (i < actions.size() - 1 && msPerAction > 50) {
+                            Thread.sleep(Math.min(10, msPerAction / 10));
                         }
                     }
                 } else {
