@@ -2291,14 +2291,14 @@ public class GearSwapperPlugin extends Plugin {
                 if (command.equalsIgnoreCase("Item")) {
                     equipItem(value);
                 } else if (command.equalsIgnoreCase("Cast")) {
-                    // Cast:... lines. When heatmap is enabled, route through the
-                    // queued heatmap executor (castSpell) to preserve script order.
-                    if (clickHeatmapEnabled) {
+                    // Cast:... lines. When heatmap or humanized mouse is enabled, route through the
+                    // queued executor (castSpell) to preserve script order.
+                    if (clickHeatmapEnabled || config.enableHumanizedMouse()) {
                         String[] spells = value.split(":");
                         for (String spell : spells) {
                             spell = spell.trim();
                             if (!spell.isEmpty()) {
-                                // Use the heatmap-aware castSpell; we only need
+                                // Use the queue-aware castSpell; we only need
                                 // the first non-empty candidate here.
                                 castSpell(spell);
                                 break;
