@@ -164,6 +164,42 @@ public class HumanizedMouseHelper {
         clickAction.run();
     }
 
+    public static void trackAndClickTile(Client client, WorldPoint wp, Runnable clickAction) {
+        if (client == null || wp == null)
+            return;
+
+        for (int i = 0; i < 3; i++) {
+            Point fresh = getTileClickPoint(client, wp);
+            if (fresh == null)
+                break;
+
+            if (Math.abs(currentX - fresh.x) > 3 || Math.abs(currentY - fresh.y) > 3) {
+                moveToPosition(client, fresh.x, fresh.y, 50);
+            }
+
+            // Final check: is mouse on tile?
+            boolean inside = Static.invoke(() -> {
+                try {
+                    LocalPoint loc = LocalPoint.fromWorld(client, wp);
+                    if (loc == null)
+                        return false;
+                    Polygon poly = Perspective.getCanvasTilePoly(client, loc);
+                    if (poly != null && poly.contains(currentX, currentY)) {
+                        return true;
+                    }
+                } catch (Exception e) {
+                }
+                return false;
+            });
+
+            if (inside) {
+                clickAction.run();
+                return;
+            }
+        }
+        clickAction.run();
+    }
+
     public static Rectangle getWidgetBounds(int interfaceId) {
         return Static.invoke(() -> {
             Widget widget = WidgetAPI.get(interfaceId);

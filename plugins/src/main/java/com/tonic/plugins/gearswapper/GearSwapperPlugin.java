@@ -4360,15 +4360,13 @@ public class GearSwapperPlugin extends Plugin {
                 if (clickPoint != null) {
                     final WorldPoint finalMoveTarget = moveTarget;
                     humanizedQueue.queue(clickPoint, () -> {
-                        Point freshPoint = HumanizedMouseHelper.getTileClickPoint(client, finalMoveTarget);
-                        if (freshPoint != null) {
-                            HumanizedMouseHelper.dispatchClick(client.getCanvas(), freshPoint.x, freshPoint.y);
-                            Logger.norm("[Humanized] Clicked tile (Move/Tracked): " + finalMoveTarget);
-                        } else {
-                            HumanizedMouseHelper.dispatchClick(client.getCanvas(), clickPoint.x, clickPoint.y);
-                            Logger.warn(
-                                    "[Humanized] Tile off-screen/invalid, clicking original point: " + finalMoveTarget);
-                        }
+                        HumanizedMouseHelper.trackAndClickTile(client, finalMoveTarget, () -> {
+                            Point fresh = HumanizedMouseHelper.getTileClickPoint(client, finalMoveTarget);
+                            if (fresh == null)
+                                fresh = clickPoint;
+                            HumanizedMouseHelper.dispatchClick(client.getCanvas(), fresh.x, fresh.y);
+                            Logger.norm("[Humanized] Clicked tile (Move/Homing): " + finalMoveTarget);
+                        });
                     }, "Move " + tilesToMove);
                     return;
                 } else {
@@ -4468,15 +4466,13 @@ public class GearSwapperPlugin extends Plugin {
                 if (clickPoint != null) {
                     final WorldPoint finalMoveTarget = moveTarget;
                     humanizedQueue.queue(clickPoint, () -> {
-                        Point freshPoint = HumanizedMouseHelper.getTileClickPoint(client, finalMoveTarget);
-                        if (freshPoint != null) {
-                            HumanizedMouseHelper.dispatchClick(client.getCanvas(), freshPoint.x, freshPoint.y);
-                            Logger.norm("[Humanized] Clicked tile (MoveDiag/Tracked): " + finalMoveTarget);
-                        } else {
-                            HumanizedMouseHelper.dispatchClick(client.getCanvas(), clickPoint.x, clickPoint.y);
-                            Logger.warn(
-                                    "[Humanized] Tile off-screen/invalid, clicking original point: " + finalMoveTarget);
-                        }
+                        HumanizedMouseHelper.trackAndClickTile(client, finalMoveTarget, () -> {
+                            Point fresh = HumanizedMouseHelper.getTileClickPoint(client, finalMoveTarget);
+                            if (fresh == null)
+                                fresh = clickPoint;
+                            HumanizedMouseHelper.dispatchClick(client.getCanvas(), fresh.x, fresh.y);
+                            Logger.norm("[Humanized] Clicked tile (MoveDiag/Homing): " + finalMoveTarget);
+                        });
                     }, "MoveDiag " + tilesToMove);
                     return;
                 } else {
