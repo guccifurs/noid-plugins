@@ -3076,11 +3076,18 @@ public class GearSwapperPlugin extends Plugin {
                                 Logger.norm("[Gear Swapper] Equipped (humanized): " + finalItem.getName());
                             }, "Equip " + item.getName());
                         } else {
-                            // Fallback if no bounds (e.g. hidden item? shouldn't happen for inventory)
+                            // Fallback if no bounds (e.g. hidden item? Inventory closed?).
+                            // Queue it to preserve order!
+                            final ItemEx finalItem = item;
+                            final String finalAction = actionToUse;
+
                             Logger.warn("[Gear Swapper] Item " + item.getName()
-                                    + " has no clickbox (Inventory closed?). using packet interaction.");
-                            InventoryAPI.interact(item, actionToUse);
-                            Logger.norm("[Gear Swapper] Equipped (fallback): " + item.getName());
+                                    + " has no clickbox (Inventory closed?). Queuing packet interaction.");
+
+                            humanizedQueue.queue(null, () -> {
+                                InventoryAPI.interact(finalItem, finalAction);
+                                Logger.norm("[Gear Swapper] Equipped (fallback queue): " + finalItem.getName());
+                            }, "Equip Fallback " + item.getName());
                         }
 
                         // For wildcards, we continue searching
@@ -3281,6 +3288,32 @@ public class GearSwapperPlugin extends Plugin {
                                 }
                             }, "Cast Target Interaction");
                             return;
+                        } else {
+                            // Bounds null (Magic tab closed?). Queue packet cast to preserve order.
+                            final String spellNameFinal = spellName;
+                            final Ancient spellFinal = spell;
+
+                            Logger.warn("[Humanized] Spell " + spellName + " widget hidden. Queuing packet cast.");
+
+                            humanizedQueue.queue(null, () -> {
+                                Player targetP = cachedTarget;
+                                if (targetP == null && client.getLocalPlayer() != null) {
+                                    Actor interacting = client.getLocalPlayer().getInteracting();
+                                    if (interacting instanceof Player)
+                                        targetP = (Player) interacting;
+                                }
+
+                                if (targetP != null) {
+                                    PlayerEx targetEx = new PlayerEx(targetP);
+                                    spellFinal.castOn(targetEx);
+                                    Logger.norm("[Humanized] Cast (fallback) on target: " + targetP.getName());
+                                } else {
+                                    // No target, just select spell?
+                                    spellFinal.cast();
+                                    Logger.norm("[Humanized] Cast (fallback) select: " + spellNameFinal);
+                                }
+                            }, "Cast Fallback " + spellName);
+                            return;
                         }
                     }
                 }
@@ -3320,7 +3353,9 @@ public class GearSwapperPlugin extends Plugin {
                         + (clickHeatmapEnabled ? " (with heatmap delay)" : ""));
             };
 
-            if (clickHeatmapEnabled && !inScriptHeatmapBlock) {
+            if (clickHeatmapEnabled && !inScriptHeatmapBlock)
+
+            {
                 executeCommandWithDelay(castTask);
             } else {
                 Static.invoke(castTask);
