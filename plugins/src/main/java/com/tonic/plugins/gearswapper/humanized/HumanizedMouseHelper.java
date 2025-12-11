@@ -113,7 +113,14 @@ public class HumanizedMouseHelper {
             // If moveToPosition succeeded, we are there.
 
             // Final check: is actor still there?
-            if (actor.getConvexHull() != null && actor.getConvexHull().contains(currentX, currentY)) {
+            boolean inside = Static.invoke(() -> {
+                if (actor.getConvexHull() != null && actor.getConvexHull().contains(currentX, currentY)) {
+                    return true;
+                }
+                return false;
+            });
+
+            if (inside) {
                 // We are ON the target.
                 clickAction.run();
                 return;
@@ -131,12 +138,15 @@ public class HumanizedMouseHelper {
         for (int i = 0; i < 3; i++) {
             Point fresh = null;
             // Object access needs to be safe? usually ok.
-            try {
-                Shape s = obj.getClickbox(); // or getShape
-                if (s != null)
-                    fresh = getRandomPointInShape(s);
-            } catch (Exception e) {
-            }
+            fresh = Static.invoke(() -> {
+                try {
+                    Shape s = obj.getClickbox(); // or getShape
+                    if (s != null)
+                        return getRandomPointInShape(s);
+                } catch (Exception e) {
+                }
+                return null;
+            });
 
             if (fresh == null)
                 fresh = getTileClickPoint(client, obj.getWorldLocation());
