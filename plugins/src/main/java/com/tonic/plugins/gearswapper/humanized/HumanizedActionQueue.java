@@ -40,14 +40,18 @@ public class HumanizedActionQueue {
     }
 
     public void queue(int targetX, int targetY, Runnable action, String description) {
-        pendingActions.add(new HumanizedAction(targetX, targetY, action, description));
+        synchronized (pendingActions) {
+            pendingActions.add(new HumanizedAction(targetX, targetY, action, description));
+        }
     }
 
     public void queue(Point target, Runnable action, String description) {
-        if (target != null) {
-            pendingActions.add(new HumanizedAction(target, action, description));
-        } else {
-            pendingActions.add(new HumanizedAction(action, description));
+        synchronized (pendingActions) {
+            if (target != null) {
+                pendingActions.add(new HumanizedAction(target, action, description));
+            } else {
+                pendingActions.add(new HumanizedAction(action, description));
+            }
         }
     }
 
@@ -77,9 +81,15 @@ public class HumanizedActionQueue {
         executing = true;
         try {
             // Keep processing until queue is empty (handles items added during execution)
-            while (!pendingActions.isEmpty()) {
-                List<HumanizedAction> actions = new ArrayList<>(pendingActions);
-                pendingActions.clear();
+            while (true) {
+                List<HumanizedAction> actions;
+                synchronized (pendingActions) {
+                    if (pendingActions.isEmpty()) {
+                        break;
+                    }
+                    actions = new ArrayList<>(pendingActions);
+                    pendingActions.clear();
+                }
 
                 int delayBetweenActions = actions.size() > 0 ? availableMs / actions.size() : 0;
                 TrajectoryGenerator generator = TrajectoryService.createGenerator();
