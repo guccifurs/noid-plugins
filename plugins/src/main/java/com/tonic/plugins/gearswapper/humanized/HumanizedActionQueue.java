@@ -84,44 +84,56 @@ public class HumanizedActionQueue {
         try {
             // Keep processing until queue is empty (handles items added during execution)
             while (true) {
-                List<HumanizedAction> actions;
+                List<HumanizedAction> actions = null;
                 synchronized (pendingActions) {
-                    if (pendingActions.isEmpty()) {
-                        break;
-                    }
-                    actions = new ArrayList<>(pendingActions);
-                    pendingActions.clear();
-                }
-
-                int delayBetweenActions = actions.size() > 0 ? availableMs / actions.size() : 0;
-                TrajectoryGenerator generator = TrajectoryService.createGenerator();
-
-                for (int i = 0; i < actions.size(); i++) {
-                    HumanizedAction action = actions.get(i);
-                    if (action.hasTargetPosition()) {
-                        Point target = action.getTargetPosition();
-                        moveToPosition(generator, target.x, target.y, delayBetweenActions);
-                    }
-                    action.execute();
-                    if (i < actions.size() - 1 && delayBetweenActions > 0) {
-                        Thread.sleep(Math.min(20, delayBetweenActions / 4));
+                    if (!pendingActions.isEmpty()) {
+                        actions = new ArrayList<>(pendingActions);
+                        pendingActions.clear();
                     }
                 }
-            }
 
-            if (returnToMouse) {
-                try {
-                    // Fetch CURRENT mouse position to allow user to influence end position
-                    Point mousePos = java.awt.MouseInfo.getPointerInfo().getLocation();
-                    java.awt.Point canvasLoc = client.getCanvas().getLocationOnScreen();
-                    int destX = mousePos.x - canvasLoc.x;
-                    int destY = mousePos.y - canvasLoc.y;
+                if (actions != null) {
+                    int delayBetweenActions = actions.size() > 0 ? availableMs / actions.size() : 0;
+                    TrajectoryGenerator generator = TrajectoryService.createGenerator();
 
-                    moveToPosition(TrajectoryService.createGenerator(), destX, destY, 100);
-                } catch (Exception e) {
-                    // Fallback to original start position if error
-                    if (realMouseX >= 0 && realMouseY >= 0) {
-                        moveToPosition(TrajectoryService.createGenerator(), realMouseX, realMouseY, 100);
+                    for (int i = 0; i < actions.size(); i++) {
+                        HumanizedAction action = actions.get(i);
+                        if (action.hasTargetPosition()) {
+                            Point target = action.getTargetPosition();
+                            moveToPosition(generator, target.x, target.y, delayBetweenActions);
+                        }
+                        action.execute();
+                        if (i < actions.size() - 1 && delayBetweenActions > 0) {
+                            Thread.sleep(Math.min(20, delayBetweenActions / 4));
+                        }
+                    }
+                } else {
+                    // Queue is empty.
+                    // Perform return to mouse if requested
+                    if (returnToMouse) {
+                        try {
+                            // Fetch CURRENT mouse position to allow user to influence end position
+                            Point mousePos = java.awt.MouseInfo.getPointerInfo().getLocation();
+                            java.awt.Point canvasLoc = client.getCanvas().getLocationOnScreen();
+                            int destX = mousePos.x - canvasLoc.x;
+                            int destY = mousePos.y - canvasLoc.y;
+
+                            moveToPosition(TrajectoryService.createGenerator(), destX, destY, 100);
+                        } catch (Exception e) {
+                            // Fallback to original start position if error
+                            if (realMouseX >= 0 && realMouseY >= 0) {
+                                moveToPosition(TrajectoryService.createGenerator(), realMouseX, realMouseY, 100);
+                            }
+                        }
+                    }
+
+                    // CRITICAL: Check queue one last time under lock before exiting
+                    // If items appeared during returnToMouse, we must continue!
+                    synchronized (pendingActions) {
+                        if (pendingActions.isEmpty()) {
+                            executing.set(false);
+                            return;
+                        }
                     }
                 }
             }
