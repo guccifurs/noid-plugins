@@ -4099,6 +4099,35 @@ public class GearSwapperPlugin extends Plugin {
                 }
             }
             scheduledScriptTasks.removeAll(tasksToRemove);
+
+            // Execute any humanized actions that were queued by the scheduled tasks
+            if (config.enableHumanizedMouse() && humanizedQueue != null && humanizedQueue.size() > 0) {
+                try {
+                    // Apply user's ping buffer setting
+                    tickPredictor.setPingThreshold(config.humanizedPingBuffer());
+                    int availableMs = tickPredictor.getAvailableMs(config.humanizedMaxTimeMs());
+                    java.awt.Point mousePos = java.awt.MouseInfo.getPointerInfo().getLocation();
+                    boolean returnMouse = config.humanizedReturnMouse();
+
+                    // Convert screen coordinates to canvas coordinates
+                    try {
+                        javax.swing.SwingUtilities.convertPointFromScreen(mousePos, client.getCanvas());
+                    } catch (Exception e) {
+                        // Ignore conversion error if canvas/component not ready
+                    }
+
+                    final java.awt.Point startPos = mousePos;
+                    final int packetThreshold = config.forcePacketThreshold();
+
+                    // Execute on separate thread to not block client thread
+                    new Thread(() -> {
+                        humanizedQueue.setCurrentPosition(startPos.x, startPos.y);
+                        humanizedQueue.executeAll(availableMs, returnMouse, startPos.x, startPos.y, packetThreshold);
+                    }).start();
+                } catch (Exception e) {
+                    Logger.error("[Gear Swapper] Error starting humanized queue for scheduled task: " + e.getMessage());
+                }
+            }
         }
 
         // Show animation overhead if enabled (independent of looper)
