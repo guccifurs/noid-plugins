@@ -1,0 +1,79 @@
+package com.tonic.services.pathfinder.requirements;
+
+import com.tonic.api.widgets.EquipmentAPI;
+import com.tonic.api.widgets.InventoryAPI;
+import lombok.Value;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Value
+public class ItemRequirement implements Requirement
+{
+    Reduction reduction;
+    Boolean equipped;
+    List<Integer> ids;
+    int amount;
+
+    public ItemRequirement(Boolean equipped, int amount, int... ids) {
+        reduction = Reduction.OR;
+        this.equipped = equipped;
+        this.amount = amount;
+        this.ids = new ArrayList<>();
+        for (int id : ids) {
+            this.ids.add(id);
+        }
+    }
+
+    public Boolean isEquipped() {
+        return equipped;
+    }
+
+    @Override
+    public Boolean get()
+    {
+        switch (reduction)
+        {
+            case AND:
+                if(equipped == null)
+                {
+                    return ids.stream().allMatch(it -> (EquipmentAPI.getCount(it) + InventoryAPI.getCount(it)) >= amount);
+                }
+                else if (equipped)
+                {
+                    return ids.stream().allMatch(it -> EquipmentAPI.getCount(it) >= amount);
+                }
+                else
+                {
+                    return ids.stream().allMatch(it -> InventoryAPI.getCount(it) >= amount);
+                }
+            case OR:
+                if(equipped == null)
+                {
+                    return ids.stream().anyMatch(it -> (EquipmentAPI.getCount(it) + InventoryAPI.getCount(it)) >= amount);
+                }
+                else if (equipped)
+                {
+                    return ids.stream().anyMatch(it -> EquipmentAPI.getCount(it) >= amount);
+                }
+                else
+                {
+                    return ids.stream().anyMatch(it -> InventoryAPI.getCount(it) >= amount);
+                }
+            case NOT:
+                if (equipped == null)
+                {
+                    return ids.stream().noneMatch(it -> (EquipmentAPI.getCount(it) + InventoryAPI.getCount(it)) >= amount);
+                }
+                else if (equipped)
+                {
+                    return ids.stream().noneMatch(it -> EquipmentAPI.getCount(it) >= amount);
+                }
+                else
+                {
+                    return ids.stream().noneMatch(it -> InventoryAPI.getCount(it) >= amount);
+                }
+        }
+        return false;
+    }
+}

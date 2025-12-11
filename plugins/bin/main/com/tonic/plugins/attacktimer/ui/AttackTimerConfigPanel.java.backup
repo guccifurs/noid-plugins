@@ -1,0 +1,1081 @@
+/*      */ package com.tonic.plugins.attacktimer.ui;
+/*      */ import com.tonic.model.ui.components.CollapsiblePanel;
+/*      */ import com.tonic.model.ui.components.OptionPanel;
+/*      */ import com.tonic.model.ui.components.ToggleSlider;
+/*      */ import com.tonic.plugins.attacktimer.AttackTimerConfig;
+/*      */ import com.tonic.plugins.attacktimer.AttackTimerPlugin;
+/*      */ import java.awt.BorderLayout;
+/*      */ import java.awt.Color;
+/*      */ import java.awt.Component;
+/*      */ import java.awt.Container;
+/*      */ import java.awt.Cursor;
+/*      */ import java.awt.Dimension;
+/*      */ import java.awt.FlowLayout;
+/*      */ import java.awt.Font;
+/*      */ import java.awt.FontMetrics;
+/*      */ import java.awt.Graphics;
+/*      */ import java.awt.Graphics2D;
+/*      */ import java.awt.RenderingHints;
+/*      */ import java.awt.event.MouseAdapter;
+/*      */ import java.awt.event.MouseEvent;
+/*      */ import java.lang.reflect.Method;
+/*      */ import javax.inject.Inject;
+/*      */ import javax.swing.BorderFactory;
+/*      */ import javax.swing.Box;
+/*      */ import javax.swing.BoxLayout;
+/*      */ import javax.swing.JButton;
+/*      */ import javax.swing.JComponent;
+/*      */ import javax.swing.JLabel;
+/*      */ import javax.swing.JPanel;
+/*      */ import javax.swing.JSpinner;
+/*      */ import javax.swing.JTextField;
+/*      */ import javax.swing.SpinnerNumberModel;
+/*      */ import javax.swing.border.EmptyBorder;
+/*      */ import javax.swing.event.ChangeEvent;
+/*      */ import javax.swing.event.ChangeListener;
+/*      */ import javax.swing.event.DocumentEvent;
+/*      */ import javax.swing.event.DocumentListener;
+/*      */ import net.runelite.client.config.ConfigManager;
+/*      */ import net.runelite.client.ui.ColorScheme;
+/*      */ import net.runelite.client.ui.PluginPanel;
+/*      */ 
+/*      */ public class AttackTimerConfigPanel extends PluginPanel {
+/*      */   private final AttackTimerConfig config;
+/*      */   private final ConfigManager configManager;
+/*      */   private JSpinner ddAttackChanceSpinner;
+/*      */   private JLabel targetNameValueLabel;
+/*      */   private JLabel playerTimerValueLabel;
+/*      */   private JLabel opponentTimerValueLabel;
+/*      */   private JLabel eatCooldownValueLabel;
+/*      */   private JLabel playerFreezeValueLabel;
+/*      */   private JLabel opponentFreezeValueLabel;
+/*      */   private JLabel pidStatusValueLabel;
+/*      */   private JLabel targetSpecValueLabel;
+/*      */   private JLabel distanceValueLabel;
+/*      */   
+/*      */   @Inject
+/*      */   public AttackTimerConfigPanel(AttackTimerConfig config, ConfigManager configManager) {
+/*   58 */     this.config = config;
+/*   59 */     this.configManager = configManager;
+/*      */     
+/*   61 */     setBorder(new EmptyBorder(10, 10, 10, 10));
+/*   62 */     setBackground(ColorScheme.DARK_GRAY_COLOR);
+/*   63 */     setLayout(new BoxLayout((Container)this, 1));
+/*      */ 
+/*      */     
+/*   66 */     JPanel contentPanel = new JPanel();
+/*   67 */     contentPanel.setLayout(new BoxLayout(contentPanel, 1));
+/*   68 */     contentPanel.setOpaque(false);
+/*   69 */     contentPanel.setAlignmentX(0.0F);
+/*      */ 
+/*      */     
+/*   72 */     JPanel headerCard = createCustomHeader("Attack Timer", "Combat automation & timing system");
+/*   73 */     contentPanel.add(headerCard);
+/*   74 */     contentPanel.add(Box.createVerticalStrut(10));
+/*      */ 
+/*      */     
+/*      */     JPanel combatDashboard = createCombatDashboard();
+/*  78 */     contentPanel.add(combatDashboard);
+/*  79 */     contentPanel.add(Box.createVerticalStrut(10));
+/*      */ 
+/*      */     
+/*      */     CollapsiblePanel quickActionsPanel = new CollapsiblePanel("Quick Actions");
+/*  83 */     quickActionsPanel.setExpanded(true);
+/*      */ 
+/*      */     
+/*      */     JPanel ddAttackPanel = createFancySpinnerOption("Diagonal Step", "DD chance when target frozen (1-50%)", config
+/*      */ 
+/*   99 */     JPanel fakieSpinnerPanel = createFancySpinnerOption("Fakie", "Chance (0-100%) to randomly equip Abyssal tentacle or Dragon crossbow when attack timer is 2 or 3 ticks. 0 = never, 100 = always.", config
+/*      */ 
+/*      */         
+/*  102 */         .fakieChance(), 0, 100, "fakieChance");
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */     
+/*  108 */     generalUtilsPanel.addContent(fakieSpinnerPanel);
+/*  109 */     generalUtilsPanel.addVerticalStrut(8);
+/*      */     
+/*  111 */     contentPanel.add((Component)generalUtilsPanel);
+/*  112 */     contentPanel.add(Box.createVerticalStrut(10));
+/*      */ 
+/*      */     
+/*  115 */     CollapsiblePanel specialMovesPanel = new CollapsiblePanel("Special Moves");
+/*      */ 
+/*      */     
+/*  118 */     JPanel specialMove1AgsSpinnerPanel = createFancySpinnerOption("Special Move 1: AGS", "Chance (0-100%) for AGS special move. Triggers when tick timer is 3. Target frozen, we unfrozen, our tick timer < target tick timer. After attack, immediately move under target.", config
+/*      */ 
+/*      */         
+/*  121 */         .specialMove1Ags(), 0, 100, "specialMove1Ags");
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */     
+/*  127 */     specialMovesPanel.addContent(specialMove1AgsSpinnerPanel);
+/*  128 */     specialMovesPanel.addVerticalStrut(8);
+/*      */ 
+/*      */     
+/*  131 */     JPanel walkAwaySpinnerPanel = createFancySpinnerOption("Walk-away", "Chance (0-100%) per attack for walk-away special move. When target timer hits 1 or 0, walk out 2-4 tiles, then walk back under next tick. Only works when target frozen and we unfrozen.", config
+/*      */ 
+/*      */         
+/*  134 */         .specialMove2(), 0, 100, "specialMove2");
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */     
+/*  140 */     specialMovesPanel.addContent(walkAwaySpinnerPanel);
+/*  141 */     specialMovesPanel.addVerticalStrut(8);
+/*      */ 
+/*      */     
+/*  144 */     ToggleSlider freeHitToggle = new ToggleSlider();
+/*  145 */     freeHitToggle.setSelected(config.freeHit());
+/*  146 */     specialMovesPanel.addContent(createToggleOption("Free Hit", "Enable free hit special move. Detects free hit opportunities based on tick timer differences (Off PID: 2+ ticks ahead, On PID: 1+ tick ahead). Takes priority over eating and other actions.", freeHitToggle, () -> {
+/*      */             try {
+/*      */               Method setConfigMethod = configManager.getClass().getMethod("setConfiguration", new Class[] { String.class, String.class, Object.class });
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */               
+/*      */               setConfigMethod.invoke(configManager, new Object[] { "attacktimer", "freeHit", Boolean.valueOf(freeHitToggle.isSelected()) });
+/*  155 */             } catch (Exception ex) {
+/*      */               System.err.println("[AttackTimerConfigPanel] Could not update config: " + ex.getMessage());
+/*      */             } 
+/*      */           }));
+/*      */     
+/*  160 */     specialMovesPanel.addVerticalStrut(8);
+/*      */ 
+/*      */     
+/*  163 */     JPanel racksonSpinnerPanel = createFancySpinnerOption("Rackson", "Chance (0-100%) for Rackson special move. Advanced movement pattern: loops between attacking and moving 2 tiles away. Only works when target frozen and we unfrozen. Triggers once per state entry. Attacks every 5 ticks (timer 1).", config
+/*      */ 
+/*      */         
+/*  166 */         .rackson(), 0, 100, "rackson");
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */     
+/*  172 */     specialMovesPanel.addContent(racksonSpinnerPanel);
+/*  173 */     specialMovesPanel.addVerticalStrut(8);
+/*      */     
+/*  175 */     contentPanel.add((Component)specialMovesPanel);
+/*  176 */     contentPanel.add(Box.createVerticalStrut(10));
+/*      */ 
+/*      */     
+/*  179 */     CollapsiblePanel combatInfoPanel = new CollapsiblePanel("Combat Info");
+/*  180 */     combatInfoPanel.setExpanded(true);
+/*      */ 
+/*      */     
+/*  183 */     JPanel timersCard = createInfoCard("Timers");
+/*  184 */     JPanel targetRow = createInfoRow("Target", "None", Color.GRAY, Color.GRAY);
+/*  185 */     this.targetNameValueLabel = (JLabel)targetRow.getComponent(1);
+/*  186 */     timersCard.add(targetRow);
+/*  187 */     JPanel playerTimerRow = createInfoRow("Me", "---", Color.GRAY, Color.GRAY);
+/*  188 */     this.playerTimerValueLabel = (JLabel)playerTimerRow.getComponent(1);
+/*  189 */     timersCard.add(playerTimerRow);
+/*  190 */     JPanel opponentTimerRow = createInfoRow("Opp", "---", Color.GRAY, Color.GRAY);
+/*  191 */     this.opponentTimerValueLabel = (JLabel)opponentTimerRow.getComponent(1);
+/*  192 */     timersCard.add(opponentTimerRow);
+/*  193 */     JPanel eatCooldownRow = createInfoRow("Eat Cooldown", "---", Color.GRAY, Color.GRAY);
+/*  194 */     this.eatCooldownValueLabel = (JLabel)eatCooldownRow.getComponent(1);
+/*  195 */     timersCard.add(eatCooldownRow);
+/*  196 */     combatInfoPanel.addContent(timersCard);
+/*  197 */     combatInfoPanel.addVerticalStrut(8);
+/*      */ 
+/*      */     
+/*  200 */     JPanel freezeCard = createInfoCard("Freeze Status");
+/*  201 */     JPanel playerFreezeRow = createInfoRow("Me Freeze", "---", Color.GRAY, Color.GRAY);
+/*  202 */     this.playerFreezeValueLabel = (JLabel)playerFreezeRow.getComponent(1);
+/*  203 */     freezeCard.add(playerFreezeRow);
+/*  204 */     JPanel opponentFreezeRow = createInfoRow("Opp Freeze", "---", Color.GRAY, Color.GRAY);
+/*  205 */     this.opponentFreezeValueLabel = (JLabel)opponentFreezeRow.getComponent(1);
+/*  206 */     freezeCard.add(opponentFreezeRow);
+/*  207 */     combatInfoPanel.addContent(freezeCard);
+/*  208 */     combatInfoPanel.addVerticalStrut(8);
+/*      */ 
+/*      */     
+/*  211 */     JPanel statusCard = createInfoCard("Combat Status");
+/*  212 */     JPanel pidRow = createInfoRow("PID", "Unknown", Color.YELLOW, Color.YELLOW);
+/*  213 */     this.pidStatusValueLabel = (JLabel)pidRow.getComponent(1);
+/*  214 */     statusCard.add(pidRow);
+/*  215 */     JPanel targetSpecRow = createInfoRow("Target Spec", "---", Color.GRAY, Color.GRAY);
+/*  216 */     this.targetSpecValueLabel = (JLabel)targetSpecRow.getComponent(1);
+/*  217 */     statusCard.add(targetSpecRow);
+/*  218 */     JPanel distanceRow = createInfoRow("Distance", "---", Color.GRAY, Color.GRAY);
+/*  219 */     this.distanceValueLabel = (JLabel)distanceRow.getComponent(1);
+/*  220 */     statusCard.add(distanceRow);
+/*  221 */     JPanel mindRow = createInfoRow("Mind", "Idle", Color.CYAN, Color.CYAN);
+/*  222 */     this.mindActionValueLabel = (JLabel)mindRow.getComponent(1);
+/*  223 */     statusCard.add(mindRow);
+/*  224 */     combatInfoPanel.addContent(statusCard);
+/*  225 */     combatInfoPanel.addVerticalStrut(8);
+/*      */ 
+/*      */     
+/*  228 */     this.aiPrayersCard = createInfoCard("AI Prayers");
+/*  229 */     JPanel targetFrozenRow = createInfoRow("Target Frozen", "---", Color.GRAY, Color.GRAY);
+/*  230 */     this.targetFrozenValueLabel = (JLabel)targetFrozenRow.getComponent(1);
+/*  231 */     this.aiPrayersCard.add(targetFrozenRow);
+/*  232 */     JPanel weFrozenRow = createInfoRow("We Frozen", "---", Color.GRAY, Color.GRAY);
+/*  233 */     this.weFrozenValueLabel = (JLabel)weFrozenRow.getComponent(1);
+/*  234 */     this.aiPrayersCard.add(weFrozenRow);
+/*  235 */     JPanel canMeleeRow = createInfoRow("Can Melee", "---", Color.GRAY, Color.GRAY);
+/*  236 */     this.canMeleeValueLabel = (JLabel)canMeleeRow.getComponent(1);
+/*  237 */     this.aiPrayersCard.add(canMeleeRow);
+/*  238 */     JPanel modusRow = createInfoRow("Modus", "---", Color.GRAY, Color.GRAY);
+/*  239 */     this.modusValueLabel = (JLabel)modusRow.getComponent(1);
+/*  240 */     this.aiPrayersCard.add(modusRow);
+/*  241 */     JPanel rangedRow = createInfoRow("Ranged", "---", Color.GREEN, Color.GREEN);
+/*  242 */     this.rangedPercentValueLabel = (JLabel)rangedRow.getComponent(1);
+/*  243 */     this.aiPrayersCard.add(rangedRow);
+/*  244 */     JPanel meleeRow = createInfoRow("Melee", "---", Color.RED, Color.RED);
+/*  245 */     this.meleePercentValueLabel = (JLabel)meleeRow.getComponent(1);
+/*  246 */     this.aiPrayersCard.add(meleeRow);
+/*  247 */     JPanel magicRow = createInfoRow("Magic", "---", Color.BLUE, Color.BLUE);
+/*  248 */     this.magicPercentValueLabel = (JLabel)magicRow.getComponent(1);
+/*  249 */     this.aiPrayersCard.add(magicRow);
+/*  250 */     combatInfoPanel.addContent(this.aiPrayersCard);
+/*  251 */     combatInfoPanel.addVerticalStrut(8);
+/*      */ 
+/*      */     
+/*  254 */     JPanel specModusCard = createInfoCard("Spec Modus");
+/*  255 */     JPanel timerRow = createInfoRow("75 Tick Timer", "---", Color.GRAY, Color.GRAY);
+/*  256 */     this.specModusTimerValueLabel = (JLabel)timerRow.getComponent(1);
+/*  257 */     specModusCard.add(timerRow);
+/*  258 */     JPanel statusRow = createInfoRow("Status", "Inactive", Color.GRAY, Color.RED);
+/*  259 */     this.specModusStatusValueLabel = (JLabel)statusRow.getComponent(1);
+/*  260 */     specModusCard.add(statusRow);
+/*  261 */     combatInfoPanel.addContent(specModusCard);
+/*  262 */     combatInfoPanel.addVerticalStrut(8);
+/*      */ 
+/*      */     
+/*  265 */     JPanel damageCard = createInfoCard("Damage Tracker");
+/*  266 */     JPanel totalDamageRow = createInfoRow("Total Damage", "0", Color.GRAY, Color.ORANGE);
+/*  267 */     this.totalDamageValueLabel = (JLabel)totalDamageRow.getComponent(1);
+/*  268 */     damageCard.add(totalDamageRow);
+/*  269 */     combatInfoPanel.addContent(damageCard);
+/*      */     
+/*  271 */     contentPanel.add((Component)combatInfoPanel);
+/*  272 */     contentPanel.add(Box.createVerticalStrut(10));
+/*      */ 
+/*      */     
+/*  275 */     CollapsiblePanel loggingPanel = new CollapsiblePanel("Logging Options");
+/*      */ 
+/*      */     
+/*  278 */     ToggleSlider combatAutomationLogToggle = new ToggleSlider();
+/*  279 */     combatAutomationLogToggle.setSelected(config.combatAutomationLogging());
+/*  280 */     loggingPanel.addContent(createToggleOption("Combat Automation", "Log combat automation actions (attack selections, movements, state transitions)", combatAutomationLogToggle, () -> {
+/*      */             try {
+/*      */               Method setConfigMethod = configManager.getClass().getMethod("setConfiguration", new Class[] { String.class, String.class, Object.class });
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */               
+/*      */               setConfigMethod.invoke(configManager, new Object[] { "attacktimer", "combatAutomationLogging", Boolean.valueOf(combatAutomationLogToggle.isSelected()) });
+/*  289 */             } catch (Exception ex) {
+/*      */               System.err.println("[AttackTimerConfigPanel] Could not update config: " + ex.getMessage());
+/*      */             } 
+/*      */           }));
+/*      */     
+/*  294 */     loggingPanel.addVerticalStrut(8);
+/*      */ 
+/*      */     
+/*  297 */     ToggleSlider aiPrayersLogToggle = new ToggleSlider();
+/*  298 */     aiPrayersLogToggle.setSelected(config.aiPrayersLogging());
+/*  299 */     loggingPanel.addContent(createToggleOption("AI Prayers", "Log AI prayer selections, activations, and redemption prayer usage", aiPrayersLogToggle, () -> {
+/*      */             try {
+/*      */               Method setConfigMethod = configManager.getClass().getMethod("setConfiguration", new Class[] { String.class, String.class, Object.class });
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */               
+/*      */               setConfigMethod.invoke(configManager, new Object[] { "attacktimer", "aiPrayersLogging", Boolean.valueOf(aiPrayersLogToggle.isSelected()) });
+/*  308 */             } catch (Exception ex) {
+/*      */               System.err.println("[AttackTimerConfigPanel] Could not update config: " + ex.getMessage());
+/*      */             } 
+/*      */           }));
+/*      */     
+/*  313 */     loggingPanel.addVerticalStrut(8);
+/*      */ 
+/*      */     
+/*  316 */     ToggleSlider handlerActionsLogToggle = new ToggleSlider();
+/*  317 */     handlerActionsLogToggle.setSelected(config.logHandlerActions());
+/*  318 */     loggingPanel.addContent(createToggleOption("Handler Actions", "Log handler-specific actions (eating, drinking, state-specific combat decisions)", handlerActionsLogToggle, () -> {
+/*      */             try {
+/*      */               Method setConfigMethod = configManager.getClass().getMethod("setConfiguration", new Class[] { String.class, String.class, Object.class });
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */               
+/*      */               setConfigMethod.invoke(configManager, new Object[] { "attacktimer", "logHandlerActions", Boolean.valueOf(handlerActionsLogToggle.isSelected()) });
+/*  327 */             } catch (Exception ex) {
+/*      */               System.err.println("[AttackTimerConfigPanel] Could not update config: " + ex.getMessage());
+/*      */             } 
+/*      */           }));
+/*      */     
+/*  332 */     loggingPanel.addVerticalStrut(8);
+/*      */ 
+/*      */     
+/*  335 */     ToggleSlider delayDetectionLogToggle = new ToggleSlider();
+/*  336 */     delayDetectionLogToggle.setSelected(config.logDelayDetection());
+/*  337 */     loggingPanel.addContent(createToggleOption("Delay Detection", "Log delay detection flags (when attack timer is ready but blocked by animations/flags)", delayDetectionLogToggle, () -> {
+/*      */             try {
+/*      */               Method setConfigMethod = configManager.getClass().getMethod("setConfiguration", new Class[] { String.class, String.class, Object.class });
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */               
+/*      */               setConfigMethod.invoke(configManager, new Object[] { "attacktimer", "logDelayDetection", Boolean.valueOf(delayDetectionLogToggle.isSelected()) });
+/*  346 */             } catch (Exception ex) {
+/*      */               System.err.println("[AttackTimerConfigPanel] Could not update config: " + ex.getMessage());
+/*      */             } 
+/*      */           }));
+/*      */     
+/*  351 */     loggingPanel.addVerticalStrut(8);
+/*      */ 
+/*      */     
+/*  354 */     ToggleSlider debugHpCheckToggle = new ToggleSlider();
+/*  355 */     debugHpCheckToggle.setSelected(config.debugHpCheck());
+/*  356 */     loggingPanel.addContent(createToggleOption("Debug HP Check", "Enable HP debugging - displays HP using multiple methods in console every 10 ticks (runs outside automation)", debugHpCheckToggle, () -> {
+/*      */             try {
+/*      */               Method setConfigMethod = configManager.getClass().getMethod("setConfiguration", new Class[] { String.class, String.class, Object.class });
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */               
+/*      */               setConfigMethod.invoke(configManager, new Object[] { "attacktimer", "debugHpCheck", Boolean.valueOf(debugHpCheckToggle.isSelected()) });
+/*  365 */             } catch (Exception ex) {
+/*      */               System.err.println("[AttackTimerConfigPanel] Could not update config: " + ex.getMessage());
+/*      */             } 
+/*      */           }));
+/*      */ 
+/*      */     
+/*  371 */     contentPanel.add((Component)loggingPanel);
+/*  372 */     contentPanel.add(Box.createVerticalStrut(10));
+/*      */ 
+/*      */     
+/*  375 */     CollapsiblePanel combatResponsesPanel = new CollapsiblePanel("Combat-Based Responses");
+/*      */ 
+/*      */     
+/*  378 */     ToggleSlider combatResponsesToggle = new ToggleSlider();
+/*  379 */     combatResponsesToggle.setSelected(config.combatBasedResponses());
+/*  380 */     combatResponsesPanel.addContent(createToggleOption("Combat-Based Responses", "Enable AI responses triggered by combat events (failed freezes, special attacks, etc.)", combatResponsesToggle, () -> {
+/*      */             try {
+/*      */               Method setConfigMethod = configManager.getClass().getMethod("setConfiguration", new Class[] { String.class, String.class, Object.class });
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */               
+/*      */               setConfigMethod.invoke(configManager, new Object[] { "attacktimer", "combatBasedResponses", Boolean.valueOf(combatResponsesToggle.isSelected()) });
+/*  389 */             } catch (Exception ex) {
+/*      */               System.err.println("[AttackTimerConfigPanel] Could not update config: " + ex.getMessage());
+/*      */             } 
+/*      */           }));
+/*      */     
+/*  394 */     combatResponsesPanel.addVerticalStrut(8);
+/*      */ 
+/*      */     
+/*  397 */     ToggleSlider combatResponseLogToggle = new ToggleSlider();
+/*  398 */     combatResponseLogToggle.setSelected(config.combatResponseLogging());
+/*  399 */     combatResponsesPanel.addContent(createToggleOption("Combat Response Logging", "Enable logging for combat-based AI responses", combatResponseLogToggle, () -> {
+/*      */             try {
+/*      */               Method setConfigMethod = configManager.getClass().getMethod("setConfiguration", new Class[] { String.class, String.class, Object.class });
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */               
+/*      */               setConfigMethod.invoke(configManager, new Object[] { "attacktimer", "combatResponseLogging", Boolean.valueOf(combatResponseLogToggle.isSelected()) });
+/*  408 */             } catch (Exception ex) {
+/*      */               System.err.println("[AttackTimerConfigPanel] Could not update config: " + ex.getMessage());
+/*      */             } 
+/*      */           }));
+/*      */ 
+/*      */     
+/*  414 */     contentPanel.add((Component)combatResponsesPanel);
+/*  415 */     contentPanel.add(Box.createVerticalStrut(10));
+/*      */ 
+/*      */     
+/*  418 */     CollapsiblePanel discordBotPanel = new CollapsiblePanel("Discord Bot API");
+/*      */ 
+/*      */     
+/*  421 */     ToggleSlider useBotApiToggle = new ToggleSlider();
+/*  422 */     useBotApiToggle.setSelected(config.useBotApiForMessages());
+/*  423 */     discordBotPanel.addContent(createToggleOption("Use Bot API for Messages", "Use Discord bot API instead of webhooks for messages (enables reply buttons). Requires bot to be running.", useBotApiToggle, () -> {
+/*      */             try {
+/*      */               Method setConfigMethod = configManager.getClass().getMethod("setConfiguration", new Class[] { String.class, String.class, Object.class });
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */               
+/*      */               setConfigMethod.invoke(configManager, new Object[] { "attacktimer", "useBotApiForMessages", Boolean.valueOf(useBotApiToggle.isSelected()) });
+/*  432 */             } catch (Exception ex) {
+/*      */               System.err.println("[AttackTimerConfigPanel] Could not update config: " + ex.getMessage());
+/*      */             } 
+/*      */           }));
+/*      */     
+/*  437 */     discordBotPanel.addVerticalStrut(8);
+/*      */ 
+/*      */     
+/*  440 */     JPanel botApiUrlPanel = createTextInputOption("Discord Bot API URL", "URL of the Discord bot HTTP server (e.g., http://localhost:8081). Leave empty to use webhooks without buttons.", config
+/*      */ 
+/*      */         
+/*  443 */         .discordBotApiUrl(), "discordBotApiUrl");
+/*      */ 
+/*      */     
+/*  446 */     discordBotPanel.addContent(botApiUrlPanel);
+/*  447 */     discordBotPanel.addVerticalStrut(8);
+/*      */ 
+/*      */     
+/*  450 */     JPanel channelIdPanel = createTextInputOption("Discord Channel ID", "Discord channel ID where messages should be sent (required for bot API). Get by right-clicking channel > Copy ID (Developer Mode must be enabled).", config
+/*      */ 
+/*      */         
+/*  453 */         .discordChannelId(), "discordChannelId");
+/*      */ 
+/*      */     
+/*  456 */     discordBotPanel.addContent(channelIdPanel);
+/*  457 */     discordBotPanel.addVerticalStrut(8);
+/*      */     
+/*  459 */     contentPanel.add((Component)discordBotPanel);
+/*  460 */     contentPanel.add(Box.createVerticalStrut(10));
+/*      */ 
+/*      */     
+/*  463 */     add(contentPanel);
+/*  464 */     add(Box.createVerticalGlue());
+/*      */   }
+/*      */   private JLabel targetFrozenValueLabel; private JLabel weFrozenValueLabel; private JLabel canMeleeValueLabel; private JLabel modusValueLabel; private JLabel rangedPercentValueLabel; private JLabel meleePercentValueLabel; private JLabel magicPercentValueLabel; private JLabel mindActionValueLabel; private JPanel aiPrayersCard; private JLabel specModusTimerValueLabel; private JLabel specModusStatusValueLabel; private JLabel totalDamageValueLabel; private AttackTimerPlugin plugin;
+/*      */   
+/*      */   private JPanel createFancySpinnerOption(String title, String description, int initialValue, int min, int max, final String configKey) {
+/*  469 */     final Color CARD_BACKGROUND = new Color(55, 55, 60);
+/*  470 */     final Color SEPARATOR_COLOR = new Color(70, 70, 75);
+/*      */ 
+/*      */     
+/*  473 */     JPanel optionPanel = new JPanel()
+/*      */       {
+/*      */         private boolean isHovered;
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */         
+/*      */         protected void paintComponent(Graphics g) {
+/*  501 */           super.paintComponent(g);
+/*  502 */           Graphics2D g2d = (Graphics2D)g;
+/*  503 */           g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+/*      */           
+/*  505 */           if (this.isHovered) {
+/*  506 */             g2d.setColor(new Color(60, 60, 65));
+/*      */           } else {
+/*  508 */             g2d.setColor(CARD_BACKGROUND);
+/*      */           } 
+/*  510 */           g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+/*      */           
+/*  512 */           g2d.setColor(SEPARATOR_COLOR);
+/*  513 */           g2d.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+/*      */         }
+/*      */       };
+/*      */ 
+/*      */     
+/*  518 */     JPanel textPanel = new JPanel();
+/*  519 */     textPanel.setLayout(new BoxLayout(textPanel, 1));
+/*  520 */     textPanel.setOpaque(false);
+/*      */     
+/*  522 */     JLabel titleLabel = new JLabel(title);
+/*  523 */     titleLabel.setFont(new Font("Segoe UI", 1, 12));
+/*  524 */     titleLabel.setForeground(new Color(64, 169, 211));
+/*  525 */     textPanel.add(titleLabel);
+/*      */     
+/*  527 */     JLabel descLabel = new JLabel("<html><div style='width:180px;'>" + description + "</div></html>");
+/*  528 */     descLabel.setFont(new Font("Segoe UI", 0, 10));
+/*  529 */     descLabel.setForeground(new Color(200, 200, 205));
+/*  530 */     descLabel.setBorder(new EmptyBorder(2, 0, 0, 0));
+/*  531 */     textPanel.add(descLabel);
+/*      */ 
+/*      */     
+/*  534 */     SpinnerNumberModel spinnerModel = new SpinnerNumberModel(initialValue, min, max, 1);
+/*  535 */     final JSpinner spinner = new JSpinner(spinnerModel);
+/*  536 */     styleSpinner(spinner);
+/*      */ 
+/*      */     
+/*  539 */     if ("ddAttackChance".equals(configKey)) {
+/*  540 */       this.ddAttackChanceSpinner = spinner;
+/*      */     }
+/*      */ 
+/*      */     
+/*  544 */     spinner.addChangeListener(new ChangeListener()
+/*      */         {
+/*      */           public void stateChanged(ChangeEvent e) {
+/*  547 */             int value = ((Integer)spinner.getValue()).intValue();
+/*      */ 
+/*      */ 
+/*      */             
+/*      */             try {
+/*  552 */               Method setConfigMethod = AttackTimerConfigPanel.this.configManager.getClass().getMethod("setConfiguration", new Class[] { String.class, String.class, Object.class });
+/*  553 */               setConfigMethod.invoke(AttackTimerConfigPanel.this.configManager, new Object[] { "attacktimer", configKey, Integer.valueOf(value) });
+/*  554 */             } catch (Exception ex) {
+/*      */ 
+/*      */               
+/*      */               try {
+/*  558 */                 Method setConfigMethod = AttackTimerConfigPanel.this.configManager.getClass().getMethod("setConfiguration", new Class[] { String.class, String.class, String.class });
+/*  559 */                 setConfigMethod.invoke(AttackTimerConfigPanel.this.configManager, new Object[] { "attacktimer", configKey, String.valueOf(value) });
+/*  560 */               } catch (Exception ex2) {
+/*      */                 
+/*  562 */                 System.err.println("[AttackTimerConfigPanel] Could not update config programmatically: " + ex2.getMessage());
+/*      */               } 
+/*      */             } 
+/*      */           }
+/*      */         });
+/*      */ 
+/*      */     
+/*  569 */     JPanel spinnerWrapper = new JPanel(new FlowLayout(2, 0, 0));
+/*  570 */     spinnerWrapper.setOpaque(false);
+/*  571 */     spinnerWrapper.add(spinner);
+/*      */     
+/*  573 */     optionPanel.add(textPanel, "Center");
+/*  574 */     optionPanel.add(spinnerWrapper, "East");
+/*      */     
+/*  576 */     return optionPanel;
+/*      */   }
+/*      */   
+/*      */   private void styleSpinner(JSpinner spinner) {
+/*  580 */     spinner.setPreferredSize(new Dimension(70, 26));
+/*  581 */     spinner.setMaximumSize(new Dimension(70, 26));
+/*  582 */     spinner.setFont(new Font("Segoe UI", 0, 12));
+/*  583 */     spinner.setBackground(new Color(55, 55, 60));
+/*  584 */     spinner.setForeground(new Color(245, 245, 250));
+/*  585 */     spinner.setBorder(BorderFactory.createLineBorder(new Color(70, 70, 75), 1));
+/*  586 */     spinner.setCursor(Cursor.getPredefinedCursor(2));
+/*      */ 
+/*      */     
+/*  589 */     JComponent editor = spinner.getEditor();
+/*  590 */     if (editor instanceof JSpinner.DefaultEditor) {
+/*  591 */       JSpinner.DefaultEditor defaultEditor = (JSpinner.DefaultEditor)editor;
+/*  592 */       JTextField textField = defaultEditor.getTextField();
+/*  593 */       textField.setColumns(3);
+/*  594 */       textField.setHorizontalAlignment(0);
+/*  595 */       textField.setBackground(new Color(55, 55, 60));
+/*  596 */       textField.setForeground(new Color(245, 245, 250));
+/*  597 */       textField.setFont(new Font("Segoe UI", 0, 12));
+/*  598 */       textField.setCaretColor(new Color(245, 245, 250));
+/*  599 */       textField.setBorder(new EmptyBorder(2, 4, 2, 4));
+/*      */     } 
+/*      */ 
+/*      */     
+/*  603 */     for (Component comp : spinner.getComponents()) {
+/*  604 */       if (comp instanceof JButton) {
+/*  605 */         JButton button = (JButton)comp;
+/*  606 */         button.setBackground(new Color(70, 70, 75));
+/*  607 */         button.setForeground(new Color(200, 200, 205));
+/*  608 */         button.setBorder(BorderFactory.createEmptyBorder());
+/*  609 */         button.setFocusPainted(false);
+/*  610 */         button.setCursor(Cursor.getPredefinedCursor(12));
+/*      */       } 
+/*      */     } 
+/*      */   }
+/*      */   
+/*      */   private JPanel createCustomHeader(String title, String subtitle) {
+/*  616 */     final Color CARD_BACKGROUND = new Color(55, 55, 60);
+/*  617 */     final Color ACCENT_GLOW = new Color(64, 169, 211, 30);
+/*      */     
+/*  619 */     JPanel headerPanel = new JPanel()
+/*      */       {
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */         
+/*      */         protected void paintComponent(Graphics g)
+/*      */         {
+/*  629 */           super.paintComponent(g);
+/*  630 */           Graphics2D g2d = (Graphics2D)g;
+/*  631 */           g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+/*      */ 
+/*      */           
+/*  634 */           g2d.setColor(ACCENT_GLOW);
+/*  635 */           int glowRadius = 15;
+/*  636 */           for (int i = glowRadius; i > 0; i--) {
+/*  637 */             float alpha = (glowRadius - i) / glowRadius * 0.25F;
+/*  638 */             g2d.setColor(new Color(64, 169, 211, (int)(alpha * 255.0F)));
+/*  639 */             g2d.fillRoundRect(i / 2, i / 2, getWidth() - i, getHeight() - i, 12, 12);
+/*      */           } 
+/*      */           
+/*  642 */           g2d.setColor(CARD_BACKGROUND);
+/*  643 */           g2d.fillRoundRect(3, 3, getWidth() - 6, getHeight() - 6, 10, 10);
+/*      */         }
+/*      */       };
+/*      */     
+/*  647 */     JPanel innerPanel = new JPanel();
+/*  648 */     innerPanel.setLayout(new BoxLayout(innerPanel, 1));
+/*  649 */     innerPanel.setOpaque(false);
+/*  650 */     innerPanel.setBorder(new EmptyBorder(15, 25, 15, 25));
+/*      */     
+/*  652 */     JLabel titleLabel = new JLabel(title);
+/*  653 */     titleLabel.setFont(new Font("Segoe UI", 1, 18));
+/*  654 */     titleLabel.setForeground(new Color(245, 245, 250));
+/*  655 */     titleLabel.setAlignmentX(0.5F);
+/*  656 */     innerPanel.add(titleLabel);
+/*      */     
+/*  658 */     innerPanel.add(Box.createVerticalStrut(6));
+/*      */     
+/*  660 */     JLabel subtitleLabel = new JLabel();
+/*  661 */     subtitleLabel.setFont(new Font("Segoe UI", 2, 10));
+/*  662 */     subtitleLabel.setAlignmentX(0.5F);
+/*  663 */     subtitleLabel.setHorizontalAlignment(0);
+/*  664 */     String wrappedText = String.format("<html><div style='text-align: center; width: %dpx; color: rgb(%d,%d,%d);'>%s</div></html>", new Object[] {
+/*      */           
+/*  666 */           Integer.valueOf(144), 
+/*  667 */           Integer.valueOf(64), Integer.valueOf(169), Integer.valueOf(211), subtitle
+/*      */         });
+/*      */     
+/*  670 */     subtitleLabel.setText(wrappedText);
+/*  671 */     innerPanel.add(subtitleLabel);
+/*      */     
+/*  673 */     headerPanel.add(innerPanel, "Center");
+/*  674 */     return headerPanel;
+/*      */   }
+/*      */   
+/*      */   private JPanel createInfoCard(final String title) {
+/*  678 */     final Color CARD_BACKGROUND = new Color(55, 55, 60);
+/*  679 */     final Color SEPARATOR_COLOR = new Color(70, 70, 75);
+/*  680 */     final Color HEADER_COLOR = new Color(64, 169, 211);
+/*      */     
+/*  682 */     JPanel card = new JPanel()
+/*      */       {
+/*      */         private boolean isHovered;
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */         
+/*      */         protected void paintComponent(Graphics g) {
+/*  709 */           super.paintComponent(g);
+/*  710 */           Graphics2D g2d = (Graphics2D)g;
+/*  711 */           g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+/*      */           
+/*  713 */           if (this.isHovered) {
+/*  714 */             g2d.setColor(new Color(60, 60, 65));
+/*      */           } else {
+/*  716 */             g2d.setColor(CARD_BACKGROUND);
+/*      */           } 
+/*  718 */           g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+/*      */           
+/*  720 */           g2d.setColor(SEPARATOR_COLOR);
+/*  721 */           g2d.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+/*      */ 
+/*      */           
+/*  724 */           g2d.setColor(HEADER_COLOR);
+/*  725 */           g2d.setFont(new Font("Segoe UI", 1, 12));
+/*  726 */           FontMetrics fm = g2d.getFontMetrics();
+/*  727 */           int titleY = 15;
+/*  728 */           g2d.drawString(title, 10, titleY);
+/*      */         }
+/*      */       };
+/*      */ 
+/*      */     
+/*  733 */     card.add(Box.createVerticalStrut(20));
+/*      */     
+/*  735 */     return card;
+/*      */   }
+/*      */   
+/*      */   private JPanel createInfoRow(String label, String value, Color labelColor, Color valueColor) {
+/*  739 */     JPanel row = new JPanel(new BorderLayout(8, 0));
+/*  740 */     row.setOpaque(false);
+/*  741 */     row.setBorder(new EmptyBorder(4, 5, 4, 5));
+/*  742 */     row.setMaximumSize(new Dimension(190, 25));
+/*      */     
+/*  744 */     JLabel labelText = new JLabel(label + ":");
+/*  745 */     labelText.setFont(new Font("Segoe UI", 0, 11));
+/*  746 */     labelText.setForeground(new Color(200, 200, 205));
+/*  747 */     row.add(labelText, "West");
+/*      */     
+/*  749 */     JLabel valueText = new JLabel(value);
+/*  750 */     valueText.setFont(new Font("Segoe UI", 1, 11));
+/*  751 */     valueText.setForeground(valueColor);
+/*  752 */     row.add(valueText, "East");
+/*      */     
+/*  754 */     return row;
+/*      */   }
+/*      */   
+/*      */   private JPanel createToggleOption(String title, String description, ToggleSlider toggle, Runnable onClick) {
+/*  758 */     OptionPanel optionPanel = new OptionPanel();
+/*  759 */     optionPanel.init(title, description, toggle, onClick);
+/*  760 */     return (JPanel)optionPanel;
+/*      */   }
+/*      */ 
+/*      */   
+/*      */   private JPanel createTextInputOption(String title, String description, String initialValue, final String configKey) {
+/*  765 */     final Color CARD_BACKGROUND = new Color(55, 55, 60);
+/*  766 */     final Color SEPARATOR_COLOR = new Color(70, 70, 75);
+/*  767 */     Color HEADER_COLOR = new Color(64, 169, 211);
+/*  768 */     Color TEXT_COLOR = new Color(200, 200, 205);
+/*      */ 
+/*      */     
+/*  771 */     JPanel optionPanel = new JPanel()
+/*      */       {
+/*      */         private boolean isHovered;
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */ 
+/*      */         
+/*      */         protected void paintComponent(Graphics g) {
+/*  784 */           super.paintComponent(g);
+/*  785 */           Graphics2D g2d = (Graphics2D)g;
+/*  786 */           g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+/*      */           
+/*  788 */           if (this.isHovered) {
+/*  789 */             g2d.setColor(new Color(60, 60, 65));
+/*      */           } else {
+/*  791 */             g2d.setColor(CARD_BACKGROUND);
+/*      */           } 
+/*  793 */           g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+/*      */           
+/*  795 */           g2d.setColor(SEPARATOR_COLOR);
+/*  796 */           g2d.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+/*      */         }
+/*      */       };
+/*      */ 
+/*      */     
+/*  801 */     JPanel textPanel = new JPanel();
+/*  802 */     textPanel.setLayout(new BoxLayout(textPanel, 1));
+/*  803 */     textPanel.setOpaque(false);
+/*      */     
+/*  805 */     JLabel titleLabel = new JLabel(title);
+/*  806 */     titleLabel.setFont(new Font("Segoe UI", 1, 12));
+/*  807 */     titleLabel.setForeground(HEADER_COLOR);
+/*  808 */     textPanel.add(titleLabel);
+/*      */     
+/*  810 */     JLabel descLabel = new JLabel("<html><div style='width:280px;'>" + description + "</div></html>");
+/*  811 */     descLabel.setFont(new Font("Segoe UI", 0, 10));
+/*  812 */     descLabel.setForeground(TEXT_COLOR);
+/*  813 */     descLabel.setBorder(new EmptyBorder(2, 0, 8, 0));
+/*  814 */     textPanel.add(descLabel);
+/*      */ 
+/*      */     
+/*  817 */     final JTextField textField = new JTextField((initialValue != null) ? initialValue : "");
+/*  818 */     textField.setFont(new Font("Segoe UI", 0, 11));
+/*  819 */     textField.setBackground(new Color(45, 45, 50));
+/*  820 */     textField.setForeground(Color.WHITE);
+/*  821 */     textField.setBorder(new EmptyBorder(5, 8, 5, 8));
+/*  822 */     textField.setMaximumSize(new Dimension(2147483647, 30));
+/*      */ 
+/*      */     
+/*  825 */     textField.getDocument().addDocumentListener(new DocumentListener()
+/*      */         {
+/*      */           public void insertUpdate(DocumentEvent e) {
+/*  828 */             saveConfig();
+/*      */           }
+/*      */ 
+/*      */           
+/*      */           public void removeUpdate(DocumentEvent e) {
+/*  833 */             saveConfig();
+/*      */           }
+/*      */ 
+/*      */           
+/*      */           public void changedUpdate(DocumentEvent e) {
+/*  838 */             saveConfig();
+/*      */           }
+/*      */           
+/*      */           private void saveConfig() {
+/*  842 */             String value = textField.getText();
+/*      */             
+/*      */             try {
+/*  845 */               Method setConfigMethod = AttackTimerConfigPanel.this.configManager.getClass().getMethod("setConfiguration", new Class[] { String.class, String.class, Object.class });
+/*  846 */               setConfigMethod.invoke(AttackTimerConfigPanel.this.configManager, new Object[] { "attacktimer", configKey, value });
+/*  847 */             } catch (Exception ex) {
+/*  848 */               System.err.println("[AttackTimerConfigPanel] Could not update config: " + ex.getMessage());
+/*      */             } 
+/*      */           }
+/*      */         });
+/*      */     
+/*  853 */     optionPanel.add(textPanel);
+/*  854 */     optionPanel.add(textField);
+/*      */     
+/*  856 */     return optionPanel;
+/*      */   }
+/*      */   
+/*      */   public void setPlugin(AttackTimerPlugin plugin) {
+/*  860 */     this.plugin = plugin;
+/*      */   }
+/*      */   
+/*      */   public void updateCombatInfo() {
+/*  864 */     if (this.plugin == null || !this.config.enabled()) {
+/*  865 */       setTargetName("None", Color.GRAY);
+/*  866 */       setPlayerTimer("---", Color.GRAY);
+/*  867 */       setOpponentTimer("---", Color.GRAY);
+/*  868 */       setEatCooldown(0);
+/*  869 */       setPlayerFreeze("---", Color.GRAY);
+/*  870 */       setOpponentFreeze("---", Color.GRAY);
+/*  871 */       setPidStatus("Unknown", Color.YELLOW);
+/*  872 */       setTargetSpec("---", Color.GRAY);
+/*  873 */       setDistance(-1);
+/*  874 */       setAIPrayersVisible(false);
+/*  875 */       setTotalDamage(0);
+/*      */       
+/*      */       return;
+/*      */     } 
+/*  879 */     this.plugin.updatePanelInfo(this);
+/*      */   }
+/*      */ 
+/*      */   
+/*      */   public void setTargetName(String name, Color color) {
+/*  884 */     if (this.targetNameValueLabel != null) {
+/*  885 */       this.targetNameValueLabel.setText(name);
+/*  886 */       this.targetNameValueLabel.setForeground(color);
+/*      */     } 
+/*      */   }
+/*      */   
+/*      */   public void setPlayerTimer(String text, Color color) {
+/*  891 */     if (this.playerTimerValueLabel != null) {
+/*  892 */       this.playerTimerValueLabel.setText(text);
+/*  893 */       this.playerTimerValueLabel.setForeground(color);
+/*      */     } 
+/*      */   }
+/*      */   
+/*      */   public void setOpponentTimer(String text, Color color) {
+/*  898 */     if (this.opponentTimerValueLabel != null) {
+/*  899 */       this.opponentTimerValueLabel.setText(text);
+/*  900 */       this.opponentTimerValueLabel.setForeground(color);
+/*      */     } 
+/*      */   }
+/*      */   
+/*      */   public void setEatCooldown(int ticks) {
+/*  905 */     if (this.eatCooldownValueLabel != null) {
+/*  906 */       if (ticks <= 0) {
+/*  907 */         this.eatCooldownValueLabel.setText("---");
+/*  908 */         this.eatCooldownValueLabel.setForeground(Color.GRAY);
+/*      */       } else {
+/*  910 */         this.eatCooldownValueLabel.setText(String.valueOf(ticks));
+/*      */         
+/*  912 */         this.eatCooldownValueLabel.setForeground(Color.RED);
+/*      */       } 
+/*      */     }
+/*      */   }
+/*      */   
+/*      */   public void setPlayerFreeze(String text, Color color) {
+/*  918 */     if (this.playerFreezeValueLabel != null) {
+/*  919 */       this.playerFreezeValueLabel.setText(text);
+/*  920 */       this.playerFreezeValueLabel.setForeground(color);
+/*  921 */       this.playerFreezeValueLabel.getParent().setVisible(true);
+/*      */     } 
+/*      */   }
+/*      */   
+/*      */   public void hidePlayerFreeze() {
+/*  926 */     if (this.playerFreezeValueLabel != null) {
+/*  927 */       this.playerFreezeValueLabel.getParent().setVisible(false);
+/*      */     }
+/*      */   }
+/*      */   
+/*      */   public void setOpponentFreeze(String text, Color color) {
+/*  932 */     if (this.opponentFreezeValueLabel != null) {
+/*  933 */       this.opponentFreezeValueLabel.setText(text);
+/*  934 */       this.opponentFreezeValueLabel.setForeground(color);
+/*  935 */       this.opponentFreezeValueLabel.getParent().setVisible(true);
+/*      */     } 
+/*      */   }
+/*      */   
+/*      */   public void hideOpponentFreeze() {
+/*  940 */     if (this.opponentFreezeValueLabel != null) {
+/*  941 */       this.opponentFreezeValueLabel.getParent().setVisible(false);
+/*      */     }
+/*      */   }
+/*      */   
+/*      */   public void setPidStatus(String text, Color color) {
+/*  946 */     if (this.pidStatusValueLabel != null) {
+/*  947 */       this.pidStatusValueLabel.setText(text);
+/*  948 */       this.pidStatusValueLabel.setForeground(color);
+/*      */     } 
+/*      */   }
+/*      */   
+/*      */   public void setTargetSpec(String text, Color color) {
+/*  953 */     if (this.targetSpecValueLabel != null) {
+/*  954 */       this.targetSpecValueLabel.setText(text);
+/*  955 */       this.targetSpecValueLabel.setForeground(color);
+/*      */     } 
+/*      */   }
+/*      */   
+/*      */   public void setDistance(int distance) {
+/*  960 */     if (this.distanceValueLabel != null) {
+/*  961 */       if (distance < 0) {
+/*  962 */         this.distanceValueLabel.setText("---");
+/*  963 */         this.distanceValueLabel.setForeground(Color.GRAY);
+/*      */       } else {
+/*  965 */         this.distanceValueLabel.setText("" + distance + " tiles");
+/*      */         
+/*  967 */         if (distance <= 1) {
+/*  968 */           this.distanceValueLabel.setForeground(Color.GREEN);
+/*  969 */         } else if (distance <= 7) {
+/*  970 */           this.distanceValueLabel.setForeground(Color.YELLOW);
+/*      */         } else {
+/*  972 */           this.distanceValueLabel.setForeground(Color.RED);
+/*      */         } 
+/*      */       } 
+/*      */     }
+/*      */   }
+/*      */   
+/*      */   public void setMindAction(String action) {
+/*  979 */     if (this.mindActionValueLabel != null) {
+/*  980 */       if (action == null || action.trim().isEmpty()) {
+/*  981 */         this.mindActionValueLabel.setText("Idle");
+/*  982 */         this.mindActionValueLabel.setForeground(Color.GRAY);
+/*      */       } else {
+/*  984 */         this.mindActionValueLabel.setText(action);
+/*  985 */         this.mindActionValueLabel.setForeground(Color.CYAN);
+/*      */       } 
+/*      */     }
+/*      */   }
+/*      */   
+/*      */   public void setAIPrayersVisible(boolean visible) {
+/*  991 */     if (this.aiPrayersCard != null) {
+/*  992 */       this.aiPrayersCard.setVisible(visible);
+/*      */     }
+/*      */   }
+/*      */   
+/*      */   public void setTargetFrozen(boolean frozen) {
+/*  997 */     if (this.targetFrozenValueLabel != null) {
+/*  998 */       this.targetFrozenValueLabel.setText(frozen ? "True" : "False");
+/*  999 */       this.targetFrozenValueLabel.setForeground(frozen ? Color.GREEN : Color.RED);
+/*      */     } 
+/*      */   }
+/*      */   
+/*      */   public void setWeFrozen(boolean frozen) {
+/* 1004 */     if (this.weFrozenValueLabel != null) {
+/* 1005 */       this.weFrozenValueLabel.setText(frozen ? "True" : "False");
+/* 1006 */       this.weFrozenValueLabel.setForeground(frozen ? Color.GREEN : Color.RED);
+/*      */     } 
+/*      */   }
+/*      */   
+/*      */   public void setCanMelee(boolean canMelee) {
+/* 1011 */     if (this.canMeleeValueLabel != null) {
+/* 1012 */       this.canMeleeValueLabel.setText(canMelee ? "True" : "False");
+/* 1013 */       this.canMeleeValueLabel.setForeground(Color.WHITE);
+/*      */     } 
+/*      */   }
+/*      */   
+/*      */   public void setModus(String modus) {
+/* 1018 */     if (this.modusValueLabel != null) {
+/* 1019 */       this.modusValueLabel.setText(modus);
+/* 1020 */       this.modusValueLabel.setForeground(Color.WHITE);
+/*      */     } 
+/*      */   }
+/*      */   
+/*      */   public void setRangedPercent(double percent) {
+/* 1025 */     if (this.rangedPercentValueLabel != null) {
+/* 1026 */       this.rangedPercentValueLabel.setText(String.format("%.0f%%", new Object[] { Double.valueOf(percent) }));
+/* 1027 */       this.rangedPercentValueLabel.setForeground(Color.GREEN);
+/*      */     } 
+/*      */   }
+/*      */   
+/*      */   public void setMeleePercent(double percent) {
+/* 1032 */     if (this.meleePercentValueLabel != null) {
+/* 1033 */       this.meleePercentValueLabel.setText(String.format("%.0f%%", new Object[] { Double.valueOf(percent) }));
+/* 1034 */       this.meleePercentValueLabel.setForeground(Color.RED);
+/*      */     } 
+/*      */   }
+/*      */   
+/*      */   public void setMagicPercent(double percent) {
+/* 1039 */     if (this.magicPercentValueLabel != null) {
+/* 1040 */       this.magicPercentValueLabel.setText(String.format("%.0f%%", new Object[] { Double.valueOf(percent) }));
+/* 1041 */       this.magicPercentValueLabel.setForeground(Color.BLUE);
+/*      */     } 
+/*      */   }
+/*      */   
+/*      */   public void setSpecModusTimer(int ticks) {
+/* 1046 */     if (this.specModusTimerValueLabel != null) {
+/* 1047 */       if (ticks < 0) {
+/* 1048 */         this.specModusTimerValueLabel.setText("---");
+/* 1049 */         this.specModusTimerValueLabel.setForeground(Color.GRAY);
+/*      */       } else {
+/* 1051 */         this.specModusTimerValueLabel.setText(String.valueOf(ticks));
+/*      */         
+/* 1053 */         if (ticks > 0) {
+/* 1054 */           this.specModusTimerValueLabel.setForeground((ticks >= 75) ? Color.YELLOW : Color.GREEN);
+/*      */         } else {
+/* 1056 */           this.specModusTimerValueLabel.setForeground(Color.GRAY);
+/*      */         } 
+/*      */       } 
+/*      */     }
+/*      */   }
+/*      */   
+/*      */   public void setSpecModusStatus(boolean active) {
+/* 1063 */     if (this.specModusStatusValueLabel != null) {
+/* 1064 */       this.specModusStatusValueLabel.setText(active ? "Active" : "Inactive");
+/* 1065 */       this.specModusStatusValueLabel.setForeground(active ? Color.GREEN : Color.RED);
+/*      */     } 
+/*      */   }
+/*      */   
+/*      */   public void setTotalDamage(int damage) {
+/* 1070 */     if (this.totalDamageValueLabel != null) {
+/* 1071 */       this.totalDamageValueLabel.setText(String.valueOf(damage));
+/*      */       
+/* 1073 */       if (damage == 0) {
+/* 1074 */         this.totalDamageValueLabel.setForeground(Color.GRAY);
+/* 1075 */       } else if (damage < 100) {
+/* 1076 */         this.totalDamageValueLabel.setForeground(Color.ORANGE);
+/*      */       } else {
+/* 1078 */         this.totalDamageValueLabel.setForeground(Color.GREEN);
+/*      */       } 
+/*      */     } 
+/*      */   }
+/*      */   
+/*      */   private static class VPluginPanel {
+/*      */     static final int PANEL_WIDTH = 244;
+/*      */   }
+/*      */ }
+
+
+/* Location:              /home/guccifur/Bureaublad/AttackTimerPlugin.jar!/com/tonic/plugins/attacktimer/ui/AttackTimerConfigPanel.class
+ * Java compiler version: 11 (55.0)
+ * JD-Core Version:       1.1.3
+ */

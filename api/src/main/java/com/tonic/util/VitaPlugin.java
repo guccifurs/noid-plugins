@@ -1,0 +1,82 @@
+package com.tonic.util;
+
+import com.tonic.Logger;
+import net.runelite.api.events.GameTick;
+import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.plugins.Plugin;
+import java.util.concurrent.Future;
+
+/**
+ * A VitaLite Plugin base class for looped plugins (threaded).
+ */
+public class VitaPlugin extends Plugin
+{
+    private Future<?> loopFuture = null;
+
+    /**
+     * Overridable loop() method. It is safe to sleep in, but as a result is
+     * not thread safe, so you must use invoke()'s to do operations that require
+     * thread safety. It is started from the start of a gametick.
+     * @throws Exception exception
+     */
+    public void loop() throws Exception
+    {
+    }
+
+    /**
+     * Subscriber to the gametick event to handle dealing with starting new futures for our loop() method
+     * as necessary.
+     */
+    @Subscribe
+    public final void _onGameTick(GameTick event) {
+        if (!ReflectUtil.isOverridden(this, "loop"))
+            return;
+
+        if(loopFuture != null && !loopFuture.isDone())
+            return;
+
+        loopFuture = ThreadPool.submit(new AsyncTask(() -> {
+            try
+            {
+                loop();
+            }
+            catch (RuntimeException e)
+            {
+                Logger.norm("[" + getName() + "] Plugin::loop() has been interrupted.");
+            }
+            catch (Throwable e)
+            {
+                Logger.error(e, "[" + getName() + "] Error in loop(): %e");
+                e.printStackTrace();
+            }
+            finally
+            {
+                AsyncTask.dispose();
+            }
+        }));
+    }
+
+    /**
+     * Gracefully prematurely end/cancel a running async loop().
+     * @param callback callback
+     */
+    public void haltLoop(Runnable callback)
+    {
+        if(loopFuture == null || loopFuture.isDone())
+            callback.run();
+        System.out.println("Halting " + getName() + " loop...");
+        AsyncTask._cancel();
+        ThreadPool.submit(() -> {
+            while(!loopFuture.isDone())
+            {
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException ignored) {
+                }
+            }
+            System.out.println(getName() + " loop halted.");
+            if(callback != null)
+                callback.run();
+        });
+    }
+}

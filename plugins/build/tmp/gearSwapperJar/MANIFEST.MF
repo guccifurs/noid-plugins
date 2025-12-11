@@ -1,0 +1,7 @@
+Manifest-Version: 1.0
+Plugin-Version: 1.6.83
+Plugin-Id: gearswapper
+Plugin-Provider: Tonic
+Plugin-Name: Gear Swapper
+Plugin-Description: Swap gear loadouts with hotkeys for PvP.
+

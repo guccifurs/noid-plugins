@@ -1,0 +1,106 @@
+plugins {
+    id("java")
+}
+
+group = "com.tonic.plugins"
+version = "1.11.19.1"
+
+repositories {
+    mavenLocal()
+    maven {
+        url = uri("https://repo.runelite.net")
+        content {
+            includeGroupByRegex("net\\.runelite.*")
+        }
+    }
+    mavenCentral()
+}
+
+// Pin to the same RuneLite version as the main client to avoid
+// resolving a dynamic version (latest.release) while the repo is flaky.
+val apiVersion = "1.12.4"
+
+dependencies {
+    compileOnly(project(":api"))
+    compileOnly(project(":base-api"))
+    compileOnly("net.runelite:client:$apiVersion")
+    compileOnly("org.projectlombok:lombok:1.18.24")
+    annotationProcessor("org.projectlombok:lombok:1.18.24")
+    compileOnly("org.jboss.aerogear:aerogear-otp-java:1.0.0")
+    compileOnly(group = "com.fifesoft", name = "rsyntaxtextarea", version = "3.1.2")
+    compileOnly(group = "com.fifesoft", name = "autocomplete", version = "3.1.1")
+}
+
+tasks.test {
+    useJUnitPlatform()
+}
+
+tasks.withType<Jar>().configureEach {
+    // The general plugins jar used by the client should not contain
+    // external/sideloaded plugins. AttackTimer and Noid Bets each
+    // have their own dedicated jars (attackTimerJar, noidBetsJar).
+    if (name != "attackTimerJar") {
+        exclude("com/tonic/plugins/attacktimer/**")
+    }
+    if (name != "noidBetsJar") {
+        exclude("com/tonic/plugins/noidbets/**")
+    }
+}
+
+val attackTimerJar = tasks.register<Jar>("attackTimerJar") {
+    group = "build"
+    description = "Packages only the AttackTimer plugin for sideloading."
+    archiveBaseName.set("attacktimer")
+    from(sourceSets.main.get().output) {
+        include("com/tonic/plugins/attacktimer/**")
+        include("net/runelite/client/plugins/**")
+    }
+    manifest {
+        attributes(
+            "Main-Class" to "com.tonic.plugins.attacktimer.AttackTimerPlugin",
+            "Plugin-Version" to version,
+            "Plugin-Id" to "attacktimer",
+            "Plugin-Provider" to "Tonic",
+            "Plugin-Name" to "AttackTimer",
+            "Plugin-Description" to "Attack timer and AI prayers with simple combat logging"
+        )
+    }
+}
+
+val noidBetsJar = tasks.register<Jar>("noidBetsJar") {
+    group = "build"
+    description = "Packages only the Noid Bets plugin for sideloading."
+    archiveBaseName.set("noidbets")
+    from(sourceSets.main.get().output) {
+        include("com/tonic/plugins/noidbets/**")
+    }
+    manifest {
+        attributes(
+            "Main-Class" to "com.tonic.plugins.noidbets.NoidBetsPlugin",
+            "Plugin-Version" to version,
+            "Plugin-Id" to "noidbets",
+            "Plugin-Provider" to "Tonic",
+            "Plugin-Name" to "Noid Bets",
+            "Plugin-Description" to "Automated duel arena reporting and Discord betting integration."
+        )
+    }
+}
+
+val tileHideSelfJar = tasks.register<Jar>("tileHideSelfJar") {
+    group = "build"
+    description = "Packages only the Tile Hide Self plugin for sideloading."
+    archiveBaseName.set("tilehideself")
+    from(sourceSets.main.get().output) {
+        include("com/tonic/plugins/tilehideself/**")
+    }
+    manifest {
+        attributes(
+            "Main-Class" to "com.tonic.plugins.tilehideself.TileHideSelfPlugin",
+            "Plugin-Version" to version,
+            "Plugin-Id" to "tilehideself",
+            "Plugin-Provider" to "Tonic",
+            "Plugin-Name" to "Tile Hide Self",
+            "Plugin-Description" to "Hide local 2D character when another player stands on the same tile."
+        )
+    }
+}
