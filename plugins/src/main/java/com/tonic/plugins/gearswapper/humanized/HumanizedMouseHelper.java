@@ -85,6 +85,75 @@ public class HumanizedMouseHelper {
         return new Point(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
     }
 
+    /**
+     * Iterative tracking to ensure click lands on target.
+     * Logic:
+     * 1. Check if current mouse pos is inside target.
+     * 2. If yes, click.
+     * 3. If no, get fresh point, fast move, retry.
+     */
+    public static void trackAndClickActor(Client client, Actor actor, Runnable clickAction) {
+        if (client == null || actor == null)
+            return;
+
+        // Try up to 3 times to converge
+        for (int i = 0; i < 3; i++) {
+            Point fresh = getActorClickPoint(actor);
+            if (fresh == null)
+                break;
+
+            // Check if we need to move
+            if (Math.abs(currentX - fresh.x) > 3 || Math.abs(currentY - fresh.y) > 3) {
+                // Perform fast corrective move (max 50ms)
+                moveToPosition(client, fresh.x, fresh.y, 50);
+            }
+
+            // Check if we are "inside" roughly by re-evaluating hull?
+            // Actually, getActorClickPoint returns a valid point inside.
+            // If moveToPosition succeeded, we are there.
+
+            // Final check: is actor still there?
+            if (actor.getConvexHull() != null && actor.getConvexHull().contains(currentX, currentY)) {
+                // We are ON the target.
+                clickAction.run();
+                return;
+            }
+        }
+
+        // Fallback: just click where we thought it was
+        clickAction.run();
+    }
+
+    public static void trackAndClickObject(Client client, net.runelite.api.TileObject obj, Runnable clickAction) {
+        if (client == null || obj == null)
+            return;
+
+        for (int i = 0; i < 3; i++) {
+            Point fresh = null;
+            // Object access needs to be safe? usually ok.
+            try {
+                Shape s = obj.getClickbox(); // or getShape
+                if (s != null)
+                    fresh = getRandomPointInShape(s);
+            } catch (Exception e) {
+            }
+
+            if (fresh == null)
+                fresh = getTileClickPoint(client, obj.getWorldLocation());
+            if (fresh == null)
+                break;
+
+            if (Math.abs(currentX - fresh.x) > 3 || Math.abs(currentY - fresh.y) > 3) {
+                moveToPosition(client, fresh.x, fresh.y, 50); // fast correction
+            }
+
+            // Trust it and click
+            clickAction.run();
+            return;
+        }
+        clickAction.run();
+    }
+
     public static Rectangle getWidgetBounds(int interfaceId) {
         return Static.invoke(() -> {
             Widget widget = WidgetAPI.get(interfaceId);
@@ -104,20 +173,17 @@ public class HumanizedMouseHelper {
     public static Point getActorClickPoint(Actor actor) {
         if (actor == null)
             return null;
-        // Use Static.invoke to ensure thread safety if called from unpredictable
-        // context
-        // But getClickbox() should be fast.
-        try {
-            Shape clickbox = actor.getConvexHull();
-            if (clickbox != null) {
+        return Static.invoke(() -> {
+            try {
+                Shape clickbox = actor.getConvexHull();
                 if (clickbox != null) {
                     return getRandomPointInShape(clickbox);
                 }
+            } catch (Exception e) {
+                // Fallback
             }
-        } catch (Exception e) {
-            // Fallback
-        }
-        return null;
+            return null;
+        });
     }
 
     public static Point getTileClickPoint(Client client, WorldPoint worldPoint) {

@@ -3881,17 +3881,14 @@ public class GearSwapperPlugin extends Plugin {
                 Point clickPoint = HumanizedMouseHelper.getActorClickPoint(finalTarget);
                 if (clickPoint != null) {
                     humanizedQueue.queue(clickPoint, () -> {
-                        // Re-calculate point at execution time for moving targets
-                        Point freshPoint = HumanizedMouseHelper.getActorClickPoint(finalTarget);
-                        if (freshPoint != null) {
-                            HumanizedMouseHelper.dispatchClick(client.getCanvas(), freshPoint.x, freshPoint.y);
-                            Logger.norm("[Humanized] Attacking target (Tracked): " + finalTarget.getName());
-                        } else {
-                            // Fallback to original point if tracking fails
-                            HumanizedMouseHelper.dispatchClick(client.getCanvas(), clickPoint.x, clickPoint.y);
-                            Logger.warn("[Humanized] Lost track of target, clicking original point: "
-                                    + finalTarget.getName());
-                        }
+                        HumanizedMouseHelper.trackAndClickActor(client, finalTarget, () -> {
+                            // Final click dispatch on valid position
+                            Point fresh = HumanizedMouseHelper.getActorClickPoint(finalTarget);
+                            if (fresh == null)
+                                fresh = clickPoint;
+                            HumanizedMouseHelper.dispatchClick(client.getCanvas(), fresh.x, fresh.y);
+                            Logger.norm("[Humanized] Attacked target (Homing): " + finalTarget.getName());
+                        });
                     }, "Attack " + finalTarget.getName());
                     humanized = true;
                 } else {
@@ -5668,6 +5665,7 @@ public class GearSwapperPlugin extends Plugin {
         try {
             NpcEx npc = NpcAPI.search()
                     .keepIf(n -> n != null && n.getName() != null && matchesWildcard(n.getName(), namePattern))
+                    .sortNearest()
                     .first();
 
             if (npc != null) {
@@ -5679,21 +5677,19 @@ public class GearSwapperPlugin extends Plugin {
                         final NpcEx finalNpc = npc;
                         final String finalAction = (action != null && !action.isEmpty()) ? action : "Interact";
                         humanizedQueue.queue(clickPoint, () -> {
-                            Point freshPoint = HumanizedMouseHelper.getActorClickPoint(finalNpc.getNpc());
-                            int clickX = clickPoint.x, clickY = clickPoint.y;
-                            if (freshPoint != null) {
-                                clickX = freshPoint.x;
-                                clickY = freshPoint.y;
-                            }
+                            HumanizedMouseHelper.trackAndClickActor(client, finalNpc.getNpc(), () -> {
+                                Point fresh = HumanizedMouseHelper.getActorClickPoint(finalNpc.getNpc());
+                                if (fresh == null)
+                                    fresh = clickPoint;
+                                HumanizedMouseHelper.dispatchClick(client.getCanvas(), fresh.x, fresh.y);
 
-                            HumanizedMouseHelper.dispatchClick(client.getCanvas(), clickX, clickY);
-
-                            if (action != null && !action.isEmpty()) {
-                                NpcAPI.interact(finalNpc, action);
-                            } else {
-                                NpcAPI.interact(finalNpc, 0);
-                            }
-                            Logger.norm("[Humanized] NPC interaction: " + finalNpc.getName());
+                                if (finalAction != null && !finalAction.isEmpty()) {
+                                    NpcAPI.interact(finalNpc, finalAction);
+                                } else {
+                                    NpcAPI.interact(finalNpc, 0);
+                                }
+                                Logger.norm("[Humanized] NPC interaction (Homing): " + finalNpc.getName());
+                            });
                         }, "Npc " + finalNpc.getName());
                         humanized = true;
                     }
@@ -5790,29 +5786,25 @@ public class GearSwapperPlugin extends Plugin {
                         final String finalAction = (action != null && !action.isEmpty()) ? action : "Interact";
                         final Point finalClickPoint = clickPoint;
                         humanizedQueue.queue(clickPoint, () -> {
-                            Point freshPoint = null;
-                            try {
-                                java.awt.Shape s = finalObj.getShape();
-                                if (s != null)
-                                    freshPoint = HumanizedMouseHelper.getRandomPointInShape(s);
-                            } catch (Exception e) {
-                            }
-                            if (freshPoint == null)
-                                freshPoint = HumanizedMouseHelper.getTileClickPoint(client, finalObj.getWorldPoint());
+                            HumanizedMouseHelper.trackAndClickObject(client, finalObj.getTileObject(), () -> {
+                                Point fresh = HumanizedMouseHelper.getTileClickPoint(client, finalObj.getWorldPoint());
+                                try {
+                                    if (finalObj.getShape() != null)
+                                        fresh = HumanizedMouseHelper.getRandomPointInShape(finalObj.getShape());
+                                } catch (Exception e) {
+                                }
+                                if (fresh == null)
+                                    fresh = finalClickPoint;
 
-                            int clickX = finalClickPoint.x, clickY = finalClickPoint.y;
-                            if (freshPoint != null) {
-                                clickX = freshPoint.x;
-                                clickY = freshPoint.y;
-                            }
-                            HumanizedMouseHelper.dispatchClick(client.getCanvas(), clickX, clickY);
+                                HumanizedMouseHelper.dispatchClick(client.getCanvas(), fresh.x, fresh.y);
 
-                            if (action != null && !action.isEmpty()) {
-                                TileObjectAPI.interact(finalObj, action);
-                            } else {
-                                TileObjectAPI.interact(finalObj, 0);
-                            }
-                            Logger.norm("[Humanized] Object interaction: " + finalObj.getName());
+                                if (finalAction != null && !finalAction.isEmpty()) {
+                                    TileObjectAPI.interact(finalObj, finalAction);
+                                } else {
+                                    TileObjectAPI.interact(finalObj, 0);
+                                }
+                                Logger.norm("[Humanized] Object interaction (Homing): " + finalObj.getName());
+                            });
                         }, "Obj " + finalObj.getName());
                         humanized = true;
                     }
