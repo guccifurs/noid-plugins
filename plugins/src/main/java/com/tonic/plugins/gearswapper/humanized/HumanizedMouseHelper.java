@@ -169,12 +169,28 @@ public class HumanizedMouseHelper {
             return;
 
         for (int i = 0; i < 3; i++) {
-            Point fresh = getTileClickPoint(client, wp);
-            if (fresh == null)
+            // Target the CENTER of the tile for stability during movement
+            Point target = Static.invoke(() -> {
+                try {
+                    LocalPoint loc = LocalPoint.fromWorld(client, wp);
+                    if (loc == null)
+                        return null;
+                    Polygon poly = Perspective.getCanvasTilePoly(client, loc);
+                    if (poly != null) {
+                        Rectangle r = poly.getBounds();
+                        return new Point(r.x + r.width / 2, r.y + r.height / 2);
+                    }
+                } catch (Exception e) {
+                }
+                return null;
+            });
+
+            if (target == null)
                 break;
 
-            if (Math.abs(currentX - fresh.x) > 3 || Math.abs(currentY - fresh.y) > 3) {
-                moveToPosition(client, fresh.x, fresh.y, 50);
+            if (Math.abs(currentX - target.x) > 3 || Math.abs(currentY - target.y) > 3) {
+                // Faster correction (30ms) to stick to the target
+                moveToPosition(client, target.x, target.y, 30);
             }
 
             // Final check: is mouse on tile?
