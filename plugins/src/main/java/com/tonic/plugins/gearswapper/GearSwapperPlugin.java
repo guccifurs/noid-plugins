@@ -3010,6 +3010,22 @@ public class GearSwapperPlugin extends Plugin {
         try {
             Runnable equipTask = () -> {
                 Logger.norm("[Gear Swapper] equipItem pattern: " + itemName + (isRetry ? " (retry)" : ""));
+
+                // FIRST: Check if the item is already equipped to avoid unnecessary
+                // searching/logs
+                boolean alreadyEquipped = false;
+                for (ItemEx eqItem : EquipmentAPI.getAll()) {
+                    if (eqItem != null && matchesItemPattern(eqItem.getName(), itemName)) {
+                        Logger.norm(
+                                "[Gear Swapper] Match found in equipment: " + eqItem.getName() + " (skipping equip)");
+                        alreadyEquipped = true;
+                        break;
+                    }
+                }
+                if (alreadyEquipped) {
+                    return;
+                }
+
                 boolean multiMatch = itemName != null && itemName.trim().endsWith("*");
 
                 // Find matching item(s) first
