@@ -11,6 +11,10 @@ import net.runelite.api.Client;
 import net.runelite.api.Actor;
 import net.runelite.api.widgets.Widget;
 import java.awt.Shape;
+import java.awt.Polygon;
+import net.runelite.api.Perspective;
+import net.runelite.api.coords.LocalPoint;
+import net.runelite.api.coords.WorldPoint;
 
 import java.awt.Canvas;
 import java.awt.Point;
@@ -86,6 +90,30 @@ public class HumanizedMouseHelper {
             // Fallback
         }
         return null;
+    }
+
+    public static Point getTileClickPoint(Client client, WorldPoint worldPoint) {
+        if (client == null || worldPoint == null)
+            return null;
+
+        return Static.invoke(() -> {
+            try {
+                if (client.getLocalPlayer() == null)
+                    return null;
+                LocalPoint local = LocalPoint.fromWorld(client, worldPoint);
+                if (local == null)
+                    return null;
+
+                Polygon poly = Perspective.getCanvasTilePoly(client, local);
+                if (poly != null) {
+                    Rectangle bounds = poly.getBounds();
+                    return getRandomPointInBounds(bounds);
+                }
+            } catch (Exception e) {
+                // Fallback
+            }
+            return null;
+        });
     }
 
     public static boolean moveToPosition(Client client, int targetX, int targetY, int maxTimeMs) {

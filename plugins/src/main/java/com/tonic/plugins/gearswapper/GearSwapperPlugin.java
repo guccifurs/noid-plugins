@@ -60,6 +60,7 @@ import com.tonic.api.widgets.PrayerAPI;
 import com.tonic.api.widgets.EquipmentAPI;
 import com.tonic.plugins.gearswapper.humanized.HumanizedMouseHelper;
 import net.runelite.api.gameval.InterfaceID;
+import java.awt.Shape;
 import java.awt.Rectangle;
 import java.awt.Point;
 import com.tonic.api.widgets.WidgetAPI;
@@ -2411,8 +2412,26 @@ public class GearSwapperPlugin extends Plugin {
                             int z = coords.length >= 3 ? Integer.parseInt(coords[2].trim()) : 0;
                             WorldPoint target = new WorldPoint(x, y, z);
                             if (client != null) {
-                                com.tonic.api.game.MovementAPI.walkToWorldPoint(target);
-                                Logger.norm("[Gear Swapper] Walking to " + x + ":" + y + ":" + z);
+                                boolean humanized = false;
+                                if (config.enableHumanizedMouse() && humanizedQueue != null) {
+                                    Point clickPoint = HumanizedMouseHelper.getTileClickPoint(client, target);
+                                    if (clickPoint != null) {
+                                        humanizedQueue.queue(clickPoint, () -> {
+                                            HumanizedMouseHelper.dispatchClick(client.getCanvas(), clickPoint.x,
+                                                    clickPoint.y);
+                                            Logger.norm("[Humanized] Clicked tile (Walk): " + x + ":" + y + ":" + z);
+                                        }, "Walk " + x + ":" + y);
+                                        humanized = true;
+                                    } else {
+                                        Logger.warn(
+                                                "[Humanized] Walk target off-screen, using packet fallback: " + target);
+                                    }
+                                }
+
+                                if (!humanized) {
+                                    com.tonic.api.game.MovementAPI.walkToWorldPoint(target);
+                                    Logger.norm("[Gear Swapper] Walking to " + x + ":" + y + ":" + z);
+                                }
                             }
                         } else {
                             Logger.warn("[Gear Swapper] Invalid Walk format: " + value
@@ -3856,27 +3875,30 @@ public class GearSwapperPlugin extends Plugin {
 
             final Player finalTarget = targetPlayer;
 
-            Static.invoke(() -> {
-                PlayerEx targetEx = new PlayerEx(finalTarget);
-                String[] actions = targetEx.getActions();
-                int fightIndex = -1;
+            // Humanized Mouse Support
+            boolean humanized = false;
+            if (config.enableHumanizedMouse() && humanizedQueue != null) {
+                Point clickPoint = HumanizedMouseHelper.getActorClickPoint(finalTarget);
+                if (clickPoint != null) {
+                    humanizedQueue.queue(clickPoint, () -> {
+                        HumanizedMouseHelper.dispatchClick(client.getCanvas(), clickPoint.x, clickPoint.y);
+                        Logger.norm("[Humanized] Attacking target: " + finalTarget.getName());
+                    }, "Attack " + finalTarget.getName());
+                    humanized = true;
+                } else {
+                    Logger.warn("[Humanized] Attack target off-screen/invalid, using packet fallback: "
+                            + finalTarget.getName());
+                }
+            }
 
-                if (actions != null) {
-                    // Prefer exact 'Fight', then any action containing 'fight', then 'attack'
-                    for (int i = 0; i < actions.length; i++) {
-                        String action = actions[i];
-                        if (action == null) {
-                            continue;
-                        }
+            if (!humanized) {
+                Static.invoke(() -> {
+                    PlayerEx targetEx = new PlayerEx(finalTarget);
+                    String[] actions = targetEx.getActions();
+                    int fightIndex = -1;
 
-                        String lower = action.toLowerCase();
-                        if (action.equalsIgnoreCase("Fight") || lower.contains("fight")) {
-                            fightIndex = i;
-                            break;
-                        }
-                    }
-
-                    if (fightIndex == -1) {
+                    if (actions != null) {
+                        // Prefer exact 'Fight', then any action containing 'fight', then 'attack'
                         for (int i = 0; i < actions.length; i++) {
                             String action = actions[i];
                             if (action == null) {
@@ -3884,19 +3906,34 @@ public class GearSwapperPlugin extends Plugin {
                             }
 
                             String lower = action.toLowerCase();
-                            if (lower.contains("attack")) {
+                            if (action.equalsIgnoreCase("Fight") || lower.contains("fight")) {
                                 fightIndex = i;
                                 break;
                             }
                         }
-                    }
-                }
 
-                if (fightIndex != -1) {
-                    targetEx.interact(fightIndex);
-                }
-            });
-            Logger.norm("[Gear Swapper] Attacking target using 'Fight' option: " + targetPlayer.getName());
+                        if (fightIndex == -1) {
+                            for (int i = 0; i < actions.length; i++) {
+                                String action = actions[i];
+                                if (action == null) {
+                                    continue;
+                                }
+
+                                String lower = action.toLowerCase();
+                                if (lower.contains("attack")) {
+                                    fightIndex = i;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (fightIndex != -1) {
+                        targetEx.interact(fightIndex);
+                    }
+                });
+                Logger.norm("[Gear Swapper] Attacking target using 'Fight' option: " + targetPlayer.getName());
+            }
         } catch (Throwable e) {
             Logger.error("[Gear Swapper] Error attacking target: " + e.getMessage());
         }
@@ -4311,6 +4348,21 @@ public class GearSwapperPlugin extends Plugin {
                 }
             }
 
+            // Humanized Mouse Support
+            if (config.enableHumanizedMouse() && humanizedQueue != null) {
+                Point clickPoint = HumanizedMouseHelper.getTileClickPoint(client, moveTarget);
+                if (clickPoint != null) {
+                    final WorldPoint finalMoveTarget = moveTarget;
+                    humanizedQueue.queue(clickPoint, () -> {
+                        HumanizedMouseHelper.dispatchClick(client.getCanvas(), clickPoint.x, clickPoint.y);
+                        Logger.norm("[Humanized] Clicked tile (Move): " + finalMoveTarget);
+                    }, "Move " + tilesToMove);
+                    return;
+                } else {
+                    Logger.warn("[Humanized] Move target off-screen, using packet fallback: " + moveTarget);
+                }
+            }
+
             // Use VitaLite MovementAPI (packets) instead of mouse simulation
             Static.invoke(() -> MovementAPI.walkToWorldPoint(moveTarget));
 
@@ -4395,6 +4447,21 @@ public class GearSwapperPlugin extends Plugin {
                 int destY = targetPos.getY() + signY * tilesToMove;
 
                 moveTarget = new WorldPoint(destX, destY, targetPos.getPlane());
+            }
+
+            // Humanized Mouse Support
+            if (config.enableHumanizedMouse() && humanizedQueue != null) {
+                Point clickPoint = HumanizedMouseHelper.getTileClickPoint(client, moveTarget);
+                if (clickPoint != null) {
+                    final WorldPoint finalMoveTarget = moveTarget;
+                    humanizedQueue.queue(clickPoint, () -> {
+                        HumanizedMouseHelper.dispatchClick(client.getCanvas(), clickPoint.x, clickPoint.y);
+                        Logger.norm("[Humanized] Clicked tile (MoveDiag): " + finalMoveTarget);
+                    }, "MoveDiag " + tilesToMove);
+                    return;
+                } else {
+                    Logger.warn("[Humanized] MoveDiag target off-screen, using packet fallback: " + moveTarget);
+                }
             }
 
             Static.invoke(() -> MovementAPI.walkToWorldPoint(moveTarget));
@@ -5538,8 +5605,26 @@ public class GearSwapperPlugin extends Plugin {
             }
 
             for (ItemEx item : items) {
-                InventoryAPI.interact(item, "Drop");
-                Logger.norm("[Gear Swapper] DropAll: dropped " + item.getName());
+                boolean humanized = false;
+                if (config.enableHumanizedMouse() && humanizedQueue != null) {
+                    java.awt.Shape shape = item.getClickBox();
+                    if (shape != null) {
+                        Rectangle bounds = shape.getBounds();
+                        Point target = HumanizedMouseHelper.getRandomPointInBounds(bounds);
+                        final ItemEx finalItem = item;
+                        humanizedQueue.queue(target, () -> {
+                            // Move mouse then packet drop - safest for specific actions like Drop
+                            InventoryAPI.interact(finalItem, "Drop");
+                            Logger.norm("[Humanized] Dropping item: " + finalItem.getName());
+                        }, "Drop " + item.getName());
+                        humanized = true;
+                    }
+                }
+
+                if (!humanized) {
+                    InventoryAPI.interact(item, "Drop");
+                    Logger.norm("[Gear Swapper] DropAll: dropped " + item.getName());
+                }
             }
 
             // Refresh items per tick for next round
@@ -5563,13 +5648,34 @@ public class GearSwapperPlugin extends Plugin {
                     .first();
 
             if (npc != null) {
-                if (action != null && !action.isEmpty()) {
-                    NpcAPI.interact(npc, action);
-                    Logger.norm("[Gear Swapper] NPC interaction: " + npc.getName() + " -> " + action);
-                } else {
-                    // Default to first action if none specified
-                    NpcAPI.interact(npc, 0);
-                    Logger.norm("[Gear Swapper] NPC interaction: " + npc.getName() + " (first action)");
+                // Humanized Mouse Support
+                boolean humanized = false;
+                if (config.enableHumanizedMouse() && humanizedQueue != null) {
+                    Point clickPoint = HumanizedMouseHelper.getActorClickPoint(npc.getNpc());
+                    if (clickPoint != null) {
+                        final NpcEx finalNpc = npc;
+                        final String finalAction = (action != null && !action.isEmpty()) ? action : "Interact";
+                        humanizedQueue.queue(clickPoint, () -> {
+                            if (action != null && !action.isEmpty()) {
+                                NpcAPI.interact(finalNpc, action);
+                            } else {
+                                NpcAPI.interact(finalNpc, 0);
+                            }
+                            Logger.norm("[Humanized] NPC interaction: " + finalNpc.getName());
+                        }, "Npc " + finalNpc.getName());
+                        humanized = true;
+                    }
+                }
+
+                if (!humanized) {
+                    if (action != null && !action.isEmpty()) {
+                        NpcAPI.interact(npc, action);
+                        Logger.norm("[Gear Swapper] NPC interaction: " + npc.getName() + " -> " + action);
+                    } else {
+                        // Default to first action if none specified
+                        NpcAPI.interact(npc, 0);
+                        Logger.norm("[Gear Swapper] NPC interaction: " + npc.getName() + " (first action)");
+                    }
                 }
             } else {
                 Logger.norm("[Gear Swapper] NPC not found: " + namePattern);
@@ -5619,12 +5725,57 @@ public class GearSwapperPlugin extends Plugin {
                     .first();
 
             if (obj != null) {
-                if (action != null && !action.isEmpty()) {
-                    TileObjectAPI.interact(obj, action);
-                    Logger.norm("[Gear Swapper] Object interaction: " + obj.getName() + " -> " + action);
-                } else {
-                    TileObjectAPI.interact(obj, 0);
-                    Logger.norm("[Gear Swapper] Object interaction: " + obj.getName() + " (first action)");
+                // Humanized Mouse Support
+                boolean humanized = false;
+                if (config.enableHumanizedMouse() && humanizedQueue != null) {
+                    // TileObjectEx typically has getClickbox or similar via interface?
+                    // TileObjectAPI returns TileObjectEx which extends TileObject
+                    // We can try to get bounds/clickpoint.
+                    // Assuming TileObjectEx has access to clickbox/local location.
+                    // Need to check if TileObjectEx interacts nicely with HumanizedMouseHelper.
+                    // HumanizedMouseHelper expects Actor or Widget or Tile(WorldPoint).
+                    // Objects have WorldPoint or LocalPoint.
+                    // Let's use getTileClickPoint directly from object location for
+                    // safety/simplicity
+                    // or try to get convex hull if available.
+
+                    Point clickPoint = null;
+                    try {
+                        Shape clickbox = obj.getShape();
+                        if (clickbox != null) {
+                            clickPoint = HumanizedMouseHelper.getRandomPointInBounds(clickbox.getBounds());
+                        }
+                    } catch (Exception e) {
+                    }
+
+                    // Fallback to tile if clickbox fails
+                    if (clickPoint == null) {
+                        clickPoint = HumanizedMouseHelper.getTileClickPoint(client, obj.getWorldPoint());
+                    }
+
+                    if (clickPoint != null) {
+                        final TileObjectEx finalObj = obj;
+                        final String finalAction = (action != null && !action.isEmpty()) ? action : "Interact";
+                        humanizedQueue.queue(clickPoint, () -> {
+                            if (action != null && !action.isEmpty()) {
+                                TileObjectAPI.interact(finalObj, action);
+                            } else {
+                                TileObjectAPI.interact(finalObj, 0);
+                            }
+                            Logger.norm("[Humanized] Object interaction: " + finalObj.getName());
+                        }, "Obj " + finalObj.getName());
+                        humanized = true;
+                    }
+                }
+
+                if (!humanized) {
+                    if (action != null && !action.isEmpty()) {
+                        TileObjectAPI.interact(obj, action);
+                        Logger.norm("[Gear Swapper] Object interaction: " + obj.getName() + " -> " + action);
+                    } else {
+                        TileObjectAPI.interact(obj, 0);
+                        Logger.norm("[Gear Swapper] Object interaction: " + obj.getName() + " (first action)");
+                    }
                 }
             } else {
                 Logger.norm("[Gear Swapper] Object not found: " + namePattern);
