@@ -2484,7 +2484,7 @@ public class GearSwapperPlugin extends Plugin {
                     lowerItem.contains("burst") ||
                     lowerItem.contains("blast") ||
                     lowerItem.contains("strike") ||
-                    lowerItem.contains("bolt") ||
+                    (lowerItem.contains("bolt") && !lowerItem.contains("bolts")) ||
                     lowerItem.contains("surge") ||
                     lowerItem.contains("wave") ||
                     lowerItem.contains("dart") ||
