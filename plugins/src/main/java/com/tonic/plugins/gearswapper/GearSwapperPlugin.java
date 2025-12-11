@@ -1760,13 +1760,18 @@ public class GearSwapperPlugin extends Plugin {
                 // Parse tick delay and add to offset
                 try {
                     String tickValue = trimmed.substring(5).trim();
-                    int ticks = Integer.parseInt(tickValue);
-                    if (ticks > 0 && ticks <= 50) {
-                        tickOffset += ticks;
-                        Logger.norm("[Gear Swapper] Tick:" + ticks + " - offset now " + tickOffset);
-                        isFirstBatch = false; // After any Tick:, we're no longer on first batch
-                    } else {
-                        Logger.warn("[Gear Swapper] Tick value must be between 1 and 50, got: " + ticks);
+                    // Split by whitespace/non-digits to handle "Tick: 1 // comment" or "Tick: 1;"
+                    String[] parts = tickValue.split("[^0-9]+");
+                    if (parts.length > 0 && !parts[0].isEmpty()) {
+                        int ticks = Integer.parseInt(parts[0]);
+                        if (ticks > 0 && ticks <= 50) {
+                            tickOffset += ticks;
+
+                            Logger.norm("[Gear Swapper] Tick:" + ticks + " - offset now " + tickOffset);
+                            isFirstBatch = false; // After any Tick:, we're no longer on first batch
+                        } else {
+                            Logger.warn("[Gear Swapper] Tick value must be between 1 and 50, got: " + ticks);
+                        }
                     }
                 } catch (NumberFormatException e) {
                     Logger.warn("[Gear Swapper] Invalid Tick format: " + trimmed);
