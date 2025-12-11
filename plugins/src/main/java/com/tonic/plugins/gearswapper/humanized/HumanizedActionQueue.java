@@ -163,6 +163,16 @@ public class HumanizedActionQueue {
         if (canvas == null)
             return;
 
+        // If timing is very tight (< 30ms), skip trajectory and teleport
+        if (maxTimeMs < 30) {
+            currentX = targetX;
+            currentY = targetY;
+            dispatchMouseMove(canvas, targetX, targetY);
+            if (pathListener != null)
+                pathListener.onPoint(targetX, targetY);
+            return;
+        }
+
         MouseMovementSequence sequence = generator.generate(currentX, currentY, targetX, targetY);
         List<MouseDataPoint> points = sequence.getPoints();
 
@@ -178,7 +188,15 @@ public class HumanizedActionQueue {
             totalDuration += points.get(i).getTimestampMillis() - points.get(i - 1).getTimestampMillis();
         }
 
-        double timeScale = totalDuration > 0 && totalDuration > maxTimeMs ? (double) maxTimeMs / totalDuration : 1.0;
+        // AGGRESSIVE SCALING: Always scale to fit budget, even if trajectory is fast
+        // This ensures we use all available time efficiently
+        double timeScale = totalDuration > 0 ? (double) maxTimeMs / totalDuration : 1.0;
+        // Cap scaling to prevent super slow movements (max 2x slower)
+        if (timeScale > 2.0)
+            timeScale = 2.0;
+        // Cap minimum to prevent impossibly fast movements
+        if (timeScale < 0.1)
+            timeScale = 0.1;
 
         for (int i = 0; i < points.size(); i++) {
             MouseDataPoint point = points.get(i);
@@ -192,8 +210,11 @@ public class HumanizedActionQueue {
             if (i > 0) {
                 long delay = points.get(i).getTimestampMillis() - points.get(i - 1).getTimestampMillis();
                 int scaledDelay = (int) (delay * timeScale);
-                if (scaledDelay > 0 && scaledDelay < 500)
+                // Minimum 1ms, max 200ms per step to prevent freezing
+                if (scaledDelay > 0 && scaledDelay < 200)
                     Thread.sleep(scaledDelay);
+                else if (scaledDelay >= 200)
+                    Thread.sleep(200);
             }
         }
         currentX = targetX;

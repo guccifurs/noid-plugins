@@ -1653,6 +1653,8 @@ public class GearSwapperPlugin extends Plugin {
                 // Execute humanized queue if enabled and has actions
                 // Must be done HERE inside the task to ensure queue is populated
                 if (config.enableHumanizedMouse() && humanizedQueue != null && humanizedQueue.size() > 0) {
+                    // Apply user's ping buffer setting
+                    tickPredictor.setPingThreshold(config.humanizedPingBuffer());
                     int availableMs = tickPredictor.getAvailableMs(config.humanizedMaxTimeMs());
                     Point mousePos = MouseInfo.getPointerInfo().getLocation();
                     boolean returnMouse = config.humanizedReturnMouse();

@@ -153,4 +153,10 @@ public interface GearSwapperConfig extends Config {
     default int humanizedMaxTimeMs() {
         return 300;
     }
+
+    @Range(min = 0, max = 150)
+    @ConfigItem(keyName = "humanizedPingBuffer", name = "Ping Buffer (ms)", description = "Safety buffer before tick ends (lower = faster but riskier). 0 for aggressive, 50 recommended, 100 for high ping.", position = 4, section = humanizedSection)
+    default int humanizedPingBuffer() {
+        return 50;
+    }
 }

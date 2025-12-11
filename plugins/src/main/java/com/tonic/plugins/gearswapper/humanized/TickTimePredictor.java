@@ -10,7 +10,7 @@ public class TickTimePredictor {
 
     private volatile long lastTickTimestamp = 0;
     private volatile int currentTick = 0;
-    private volatile int pingThresholdMs = 100;
+    private volatile int pingThresholdMs = 50; // Reduced from 100ms for faster execution
 
     public void onGameTick(int tickCount) {
         this.lastTickTimestamp = System.currentTimeMillis();
