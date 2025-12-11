@@ -3122,7 +3122,10 @@ public class GearSwapperPlugin extends Plugin {
             if (clickHeatmapEnabled && !inScriptHeatmapBlock) {
                 executeCommandWithDelay(equipTask);
             } else {
-                Static.invoke(equipTask);
+                // Run synchronously to ensure tasks are added to queue before script finishes
+                // This prevents the humanizedQueue from appearing empty when checked
+                // immediately after
+                equipTask.run();
             }
         } catch (Throwable e) {
             Logger.error("[Gear Swapper] Error equipping item: " + itemName + " - " + e.getMessage());
