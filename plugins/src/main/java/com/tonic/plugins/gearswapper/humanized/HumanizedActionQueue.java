@@ -76,26 +76,30 @@ public class HumanizedActionQueue {
 
         executing = true;
         try {
-            List<HumanizedAction> actions = new ArrayList<>(pendingActions);
-            pendingActions.clear();
+            // Keep processing until queue is empty (handles items added during execution)
+            while (!pendingActions.isEmpty()) {
+                List<HumanizedAction> actions = new ArrayList<>(pendingActions);
+                pendingActions.clear();
 
-            int delayBetweenActions = actions.size() > 0 ? availableMs / actions.size() : 0;
-            TrajectoryGenerator generator = TrajectoryService.createGenerator();
+                int delayBetweenActions = actions.size() > 0 ? availableMs / actions.size() : 0;
+                TrajectoryGenerator generator = TrajectoryService.createGenerator();
 
-            for (int i = 0; i < actions.size(); i++) {
-                HumanizedAction action = actions.get(i);
-                if (action.hasTargetPosition()) {
-                    Point target = action.getTargetPosition();
-                    moveToPosition(generator, target.x, target.y, delayBetweenActions);
-                }
-                action.execute();
-                if (i < actions.size() - 1 && delayBetweenActions > 0) {
-                    Thread.sleep(Math.min(20, delayBetweenActions / 4));
+                for (int i = 0; i < actions.size(); i++) {
+                    HumanizedAction action = actions.get(i);
+                    if (action.hasTargetPosition()) {
+                        Point target = action.getTargetPosition();
+                        moveToPosition(generator, target.x, target.y, delayBetweenActions);
+                    }
+                    action.execute();
+                    if (i < actions.size() - 1 && delayBetweenActions > 0) {
+                        Thread.sleep(Math.min(20, delayBetweenActions / 4));
+                    }
                 }
             }
 
             if (returnToMouse && realMouseX >= 0 && realMouseY >= 0) {
-                moveToPosition(generator, realMouseX, realMouseY, 100);
+                // Approximate return movement
+                moveToPosition(TrajectoryService.createGenerator(), realMouseX, realMouseY, 100);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
