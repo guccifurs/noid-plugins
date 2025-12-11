@@ -3247,12 +3247,27 @@ public class GearSwapperPlugin extends Plugin {
                             final String spellNameFinal = spellName;
                             final Ancient spellFinal = spell; // Capture for lambda
 
+                            // Queue click on spell
                             humanizedQueue.queue(target, () -> {
                                 HumanizedMouseHelper.dispatchClick(client.getCanvas(), target.x, target.y);
                                 Logger.norm("[Humanized] Clicked spell: " + spellNameFinal);
                             }, "Cast " + spellName);
 
-                            humanizedQueue.queue(null, () -> {
+                            // Determine target position NOW (at queue time) to generate trajectory
+                            Point targetPoint = null;
+                            Player targetPlayer = cachedTarget;
+                            if (targetPlayer == null && client.getLocalPlayer() != null) {
+                                Actor interacting = client.getLocalPlayer().getInteracting();
+                                if (interacting instanceof Player) {
+                                    targetPlayer = (Player) interacting;
+                                }
+                            }
+                            if (targetPlayer != null) {
+                                targetPoint = HumanizedMouseHelper.getActorClickPoint(targetPlayer);
+                            }
+
+                            // Queue movement to target (if found) + Cast interaction
+                            humanizedQueue.queue(targetPoint, () -> {
                                 Player targetP = cachedTarget;
                                 if (targetP == null && client.getLocalPlayer() != null) {
                                     Actor interacting = client.getLocalPlayer().getInteracting();

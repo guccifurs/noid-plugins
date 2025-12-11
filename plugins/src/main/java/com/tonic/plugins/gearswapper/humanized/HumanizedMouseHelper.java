@@ -8,7 +8,9 @@ import com.tonic.services.mouserecorder.MouseMovementSequence;
 import com.tonic.services.mouserecorder.trajectory.TrajectoryGenerator;
 import com.tonic.services.mouserecorder.trajectory.TrajectoryService;
 import net.runelite.api.Client;
+import net.runelite.api.Actor;
 import net.runelite.api.widgets.Widget;
+import java.awt.Shape;
 
 import java.awt.Canvas;
 import java.awt.Point;
@@ -66,6 +68,24 @@ public class HumanizedMouseHelper {
         if (bounds == null)
             return null;
         return new Point(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+    }
+
+    public static Point getActorClickPoint(Actor actor) {
+        if (actor == null)
+            return null;
+        // Use Static.invoke to ensure thread safety if called from unpredictable
+        // context
+        // But getClickbox() should be fast.
+        try {
+            Shape clickbox = actor.getConvexHull();
+            if (clickbox != null) {
+                Rectangle bounds = clickbox.getBounds();
+                return getRandomPointInBounds(bounds);
+            }
+        } catch (Exception e) {
+            // Fallback
+        }
+        return null;
     }
 
     public static boolean moveToPosition(Client client, int targetX, int targetY, int maxTimeMs) {
