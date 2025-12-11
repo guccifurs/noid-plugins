@@ -359,6 +359,10 @@ public class HumanizedMouseHelper {
                     new MouseEvent(canvas, MouseEvent.MOUSE_RELEASED, now + 50, 0, x, y, 1, false, MouseEvent.BUTTON1));
             canvas.dispatchEvent(
                     new MouseEvent(canvas, MouseEvent.MOUSE_CLICKED, now + 50, 0, x, y, 1, false, MouseEvent.BUTTON1));
+
+            // Block for the click duration to ensure we don't move the mouse away instantly
+            // while the click is theoretically "happening" over 50ms.
+            Thread.sleep(60);
         } catch (Exception e) {
         }
     }
