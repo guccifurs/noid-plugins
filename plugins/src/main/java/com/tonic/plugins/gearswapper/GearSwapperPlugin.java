@@ -118,6 +118,7 @@ import com.tonic.plugins.gearswapper.humanized.HumanizedActionQueue;
 import com.tonic.plugins.gearswapper.humanized.HumanizedMouseHelper;
 import com.tonic.plugins.gearswapper.humanized.TickTimePredictor;
 import com.tonic.plugins.gearswapper.ui.overlay.MousePathOverlay;
+import com.tonic.plugins.gearswapper.ui.overlay.TickTimelineOverlay;
 import javax.swing.SwingUtilities;
 
 @Slf4j
@@ -152,6 +153,9 @@ public class GearSwapperPlugin extends Plugin {
 
     @Inject
     private MousePathOverlay mousePathOverlay;
+
+    @Inject
+    private TickTimelineOverlay tickTimelineOverlay;
 
     @Inject
     private InventoryUtilsOverlay inventoryUtilsOverlay;
@@ -800,12 +804,20 @@ public class GearSwapperPlugin extends Plugin {
 
             // Register mouse path overlay and listener
             overlayManager.add(mousePathOverlay);
+            overlayManager.add(tickTimelineOverlay);
             HumanizedActionQueue.PathPointListener queueListener = (x, y) -> {
                 if (mousePathOverlay != null) {
                     mousePathOverlay.addPoint(new java.awt.Point(x, y));
                 }
             };
             humanizedQueue.setPathListener(queueListener);
+
+            // Wire click listener to tick timeline
+            humanizedQueue.setClickListener((description) -> {
+                if (tickTimelineOverlay != null) {
+                    tickTimelineOverlay.recordClick(description);
+                }
+            });
 
             // Allow helper to also report points if used directly elsewhere
             HumanizedMouseHelper.setPathListener((x, y) -> {
@@ -1095,6 +1107,7 @@ public class GearSwapperPlugin extends Plugin {
                 humanizedQueue.setPathListener(null);
                 HumanizedMouseHelper.setPathListener(null);
                 overlayManager.remove(mousePathOverlay);
+                overlayManager.remove(tickTimelineOverlay);
                 overlayManager.remove(debugOverlay);
                 overlayManager.remove(inventoryUtilsOverlay);
                 inventoryUtilsOverlay.shutdown();
@@ -3893,6 +3906,9 @@ public class GearSwapperPlugin extends Plugin {
         tickCounter++;
         if (tickPredictor != null) {
             tickPredictor.onGameTick(tickCounter);
+            if (tickTimelineOverlay != null) {
+                tickTimelineOverlay.onGameTick(tickCounter);
+            }
         }
         lastTickStartMs = System.currentTimeMillis();
 

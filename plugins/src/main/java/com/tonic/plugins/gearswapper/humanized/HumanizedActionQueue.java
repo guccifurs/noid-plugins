@@ -30,7 +30,12 @@ public class HumanizedActionQueue {
         void onPoint(int x, int y);
     }
 
+    public interface ClickListener {
+        void onAction(String description);
+    }
+
     private PathPointListener pathListener;
+    private ClickListener clickListener;
 
     public HumanizedActionQueue(Client client) {
         this.client = client;
@@ -38,6 +43,10 @@ public class HumanizedActionQueue {
 
     public void setPathListener(PathPointListener listener) {
         this.pathListener = listener;
+    }
+
+    public void setClickListener(ClickListener listener) {
+        this.clickListener = listener;
     }
 
     public void queue(int targetX, int targetY, Runnable action, String description) {
@@ -141,6 +150,10 @@ public class HumanizedActionQueue {
                         }
 
                         action.execute();
+                        // Notify click listener
+                        if (clickListener != null) {
+                            clickListener.onAction(action.getDescription());
+                        }
 
                         // Tiny delay between actions only if we have time
                         if (i < actions.size() - 1 && msPerAction > 50) {

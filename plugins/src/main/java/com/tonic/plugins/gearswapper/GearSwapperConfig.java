@@ -159,4 +159,9 @@ public interface GearSwapperConfig extends Config {
     default int humanizedPingBuffer() {
         return 50;
     }
+
+    @ConfigItem(keyName = "showTickTimeline", name = "Show Tick Timeline", description = "Display a scrolling timeline showing clicks relative to game ticks", position = 5, section = humanizedSection)
+    default boolean showTickTimeline() {
+        return false;
+    }
 }
