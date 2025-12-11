@@ -3881,8 +3881,17 @@ public class GearSwapperPlugin extends Plugin {
                 Point clickPoint = HumanizedMouseHelper.getActorClickPoint(finalTarget);
                 if (clickPoint != null) {
                     humanizedQueue.queue(clickPoint, () -> {
-                        HumanizedMouseHelper.dispatchClick(client.getCanvas(), clickPoint.x, clickPoint.y);
-                        Logger.norm("[Humanized] Attacking target: " + finalTarget.getName());
+                        // Re-calculate point at execution time for moving targets
+                        Point freshPoint = HumanizedMouseHelper.getActorClickPoint(finalTarget);
+                        if (freshPoint != null) {
+                            HumanizedMouseHelper.dispatchClick(client.getCanvas(), freshPoint.x, freshPoint.y);
+                            Logger.norm("[Humanized] Attacking target (Tracked): " + finalTarget.getName());
+                        } else {
+                            // Fallback to original point if tracking fails
+                            HumanizedMouseHelper.dispatchClick(client.getCanvas(), clickPoint.x, clickPoint.y);
+                            Logger.warn("[Humanized] Lost track of target, clicking original point: "
+                                    + finalTarget.getName());
+                        }
                     }, "Attack " + finalTarget.getName());
                     humanized = true;
                 } else {
@@ -4354,8 +4363,15 @@ public class GearSwapperPlugin extends Plugin {
                 if (clickPoint != null) {
                     final WorldPoint finalMoveTarget = moveTarget;
                     humanizedQueue.queue(clickPoint, () -> {
-                        HumanizedMouseHelper.dispatchClick(client.getCanvas(), clickPoint.x, clickPoint.y);
-                        Logger.norm("[Humanized] Clicked tile (Move): " + finalMoveTarget);
+                        Point freshPoint = HumanizedMouseHelper.getTileClickPoint(client, finalMoveTarget);
+                        if (freshPoint != null) {
+                            HumanizedMouseHelper.dispatchClick(client.getCanvas(), freshPoint.x, freshPoint.y);
+                            Logger.norm("[Humanized] Clicked tile (Move/Tracked): " + finalMoveTarget);
+                        } else {
+                            HumanizedMouseHelper.dispatchClick(client.getCanvas(), clickPoint.x, clickPoint.y);
+                            Logger.warn(
+                                    "[Humanized] Tile off-screen/invalid, clicking original point: " + finalMoveTarget);
+                        }
                     }, "Move " + tilesToMove);
                     return;
                 } else {
@@ -4455,8 +4471,15 @@ public class GearSwapperPlugin extends Plugin {
                 if (clickPoint != null) {
                     final WorldPoint finalMoveTarget = moveTarget;
                     humanizedQueue.queue(clickPoint, () -> {
-                        HumanizedMouseHelper.dispatchClick(client.getCanvas(), clickPoint.x, clickPoint.y);
-                        Logger.norm("[Humanized] Clicked tile (MoveDiag): " + finalMoveTarget);
+                        Point freshPoint = HumanizedMouseHelper.getTileClickPoint(client, finalMoveTarget);
+                        if (freshPoint != null) {
+                            HumanizedMouseHelper.dispatchClick(client.getCanvas(), freshPoint.x, freshPoint.y);
+                            Logger.norm("[Humanized] Clicked tile (MoveDiag/Tracked): " + finalMoveTarget);
+                        } else {
+                            HumanizedMouseHelper.dispatchClick(client.getCanvas(), clickPoint.x, clickPoint.y);
+                            Logger.warn(
+                                    "[Humanized] Tile off-screen/invalid, clicking original point: " + finalMoveTarget);
+                        }
                     }, "MoveDiag " + tilesToMove);
                     return;
                 } else {
@@ -5656,6 +5679,15 @@ public class GearSwapperPlugin extends Plugin {
                         final NpcEx finalNpc = npc;
                         final String finalAction = (action != null && !action.isEmpty()) ? action : "Interact";
                         humanizedQueue.queue(clickPoint, () -> {
+                            Point freshPoint = HumanizedMouseHelper.getActorClickPoint(finalNpc.getNpc());
+                            int clickX = clickPoint.x, clickY = clickPoint.y;
+                            if (freshPoint != null) {
+                                clickX = freshPoint.x;
+                                clickY = freshPoint.y;
+                            }
+
+                            HumanizedMouseHelper.dispatchClick(client.getCanvas(), clickX, clickY);
+
                             if (action != null && !action.isEmpty()) {
                                 NpcAPI.interact(finalNpc, action);
                             } else {
@@ -5756,7 +5788,25 @@ public class GearSwapperPlugin extends Plugin {
                     if (clickPoint != null) {
                         final TileObjectEx finalObj = obj;
                         final String finalAction = (action != null && !action.isEmpty()) ? action : "Interact";
+                        final Point finalClickPoint = clickPoint;
                         humanizedQueue.queue(clickPoint, () -> {
+                            Point freshPoint = null;
+                            try {
+                                java.awt.Shape s = finalObj.getShape();
+                                if (s != null)
+                                    freshPoint = HumanizedMouseHelper.getRandomPointInShape(s);
+                            } catch (Exception e) {
+                            }
+                            if (freshPoint == null)
+                                freshPoint = HumanizedMouseHelper.getTileClickPoint(client, finalObj.getWorldPoint());
+
+                            int clickX = finalClickPoint.x, clickY = finalClickPoint.y;
+                            if (freshPoint != null) {
+                                clickX = freshPoint.x;
+                                clickY = freshPoint.y;
+                            }
+                            HumanizedMouseHelper.dispatchClick(client.getCanvas(), clickX, clickY);
+
                             if (action != null && !action.isEmpty()) {
                                 TileObjectAPI.interact(finalObj, action);
                             } else {
