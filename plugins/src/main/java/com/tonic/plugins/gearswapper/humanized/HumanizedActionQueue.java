@@ -21,7 +21,8 @@ public class HumanizedActionQueue {
 
     private final Client client;
     private final List<HumanizedAction> pendingActions = new CopyOnWriteArrayList<>();
-    private volatile boolean executing = false;
+    private final java.util.concurrent.atomic.AtomicBoolean executing = new java.util.concurrent.atomic.AtomicBoolean(
+            false);
     private volatile int currentX = 0;
     private volatile int currentY = 0;
 
@@ -64,7 +65,7 @@ public class HumanizedActionQueue {
     }
 
     public boolean isExecuting() {
-        return executing;
+        return executing.get();
     }
 
     public void setCurrentPosition(int x, int y) {
@@ -75,10 +76,11 @@ public class HumanizedActionQueue {
     public void executeAll(int availableMs, boolean returnToMouse, int realMouseX, int realMouseY) {
         if (pendingActions.isEmpty())
             return;
-        if (executing)
+
+        // Ensure only one execution thread runs at a time
+        if (!executing.compareAndSet(false, true))
             return;
 
-        executing = true;
         try {
             // Keep processing until queue is empty (handles items added during execution)
             while (true) {
@@ -128,7 +130,7 @@ public class HumanizedActionQueue {
         } catch (Exception e) {
             Logger.error("[HumanizedQueue] Error: " + e.getMessage());
         } finally {
-            executing = false;
+            executing.set(false);
         }
     }
 
