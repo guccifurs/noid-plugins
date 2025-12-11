@@ -32,6 +32,7 @@ public class MousePathOverlay extends Overlay {
 
     private final ConcurrentLinkedDeque<TimePoint> points = new ConcurrentLinkedDeque<>();
     private static final long TRAIL_DURATION_MS = 1000; // Trail lasts 1 second
+    private static final int MAX_TRAIL_POINTS = 100; // Maximum points in the trail
 
     @Inject
     public MousePathOverlay(Client client, GearSwapperConfig config) {
@@ -43,6 +44,10 @@ public class MousePathOverlay extends Overlay {
 
     public void addPoint(Point point) {
         points.add(new TimePoint(point, System.currentTimeMillis()));
+        // Trim to max length
+        while (points.size() > MAX_TRAIL_POINTS) {
+            points.pollFirst();
+        }
     }
 
     public void clear() {
