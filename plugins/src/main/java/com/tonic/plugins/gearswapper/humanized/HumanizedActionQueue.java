@@ -83,6 +83,11 @@ public class HumanizedActionQueue {
     }
 
     public void executeAll(int availableMs, boolean returnToMouse, int realMouseX, int realMouseY) {
+        executeAll(availableMs, returnToMouse, realMouseX, realMouseY, 50); // Default threshold
+    }
+
+    public void executeAll(int availableMs, boolean returnToMouse, int realMouseX, int realMouseY,
+            int forcePacketThreshold) {
         if (pendingActions.isEmpty())
             return;
 
@@ -135,18 +140,23 @@ public class HumanizedActionQueue {
                             break; // Exit action loop
                         }
 
-                        // Move mouse if we have enough time
-                        if (action.hasTargetPosition() && msPerAction >= 30) {
+                        // Move mouse if we have enough time (above threshold)
+                        // forcePacketThreshold: 0 = never force packets, higher = more aggressive
+                        // packet usage
+                        if (action.hasTargetPosition()
+                                && (forcePacketThreshold == 0 || msPerAction >= forcePacketThreshold)) {
                             Point target = action.getTargetPosition();
                             moveToPosition(generator, target.x, target.y, msPerAction);
                         } else if (action.hasTargetPosition()) {
-                            // Not enough time for trajectory, teleport instead
+                            // Below threshold - skip trajectory, just teleport/packet
                             Point target = action.getTargetPosition();
                             currentX = target.x;
                             currentY = target.y;
                             dispatchMouseMove(client.getCanvas(), target.x, target.y);
                             if (pathListener != null)
                                 pathListener.onPoint(target.x, target.y);
+                            Logger.norm("[HumanizedQueue] Forced packet (ms/action=" + msPerAction + " < threshold="
+                                    + forcePacketThreshold + ")");
                         }
 
                         action.execute();

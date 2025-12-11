@@ -164,4 +164,10 @@ public interface GearSwapperConfig extends Config {
     default boolean showTickTimeline() {
         return false;
     }
+
+    @Range(min = 0, max = 200)
+    @ConfigItem(keyName = "forcePacketThreshold", name = "Force Packet Threshold (ms)", description = "If ms/action falls below this, skip mouse movement and use packets. Higher = more reliable but less humanized. 0 = never force packets.", position = 6, section = humanizedSection)
+    default int forcePacketThreshold() {
+        return 50;
+    }
 }

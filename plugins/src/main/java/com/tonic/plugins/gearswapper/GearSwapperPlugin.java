@@ -1680,11 +1680,12 @@ public class GearSwapperPlugin extends Plugin {
                     }
 
                     final Point startPos = mousePos;
+                    final int packetThreshold = config.forcePacketThreshold();
 
                     // Execute on separate thread to not block EDT/switching
                     new Thread(() -> {
                         humanizedQueue.setCurrentPosition(startPos.x, startPos.y);
-                        humanizedQueue.executeAll(availableMs, returnMouse, startPos.x, startPos.y);
+                        humanizedQueue.executeAll(availableMs, returnMouse, startPos.x, startPos.y, packetThreshold);
                     }).start();
                 }
             } catch (Exception ex) {
