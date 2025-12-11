@@ -1649,6 +1649,29 @@ public class GearSwapperPlugin extends Plugin {
                 if (shouldAttack[0]) {
                     attackTarget();
                 }
+
+                // Execute humanized queue if enabled and has actions
+                // Must be done HERE inside the task to ensure queue is populated
+                if (config.enableHumanizedMouse() && humanizedQueue != null && humanizedQueue.size() > 0) {
+                    int availableMs = tickPredictor.getAvailableMs(config.humanizedMaxTimeMs());
+                    Point mousePos = MouseInfo.getPointerInfo().getLocation();
+                    boolean returnMouse = config.humanizedReturnMouse();
+
+                    // Convert screen coordinates to canvas coordinates
+                    try {
+                        SwingUtilities.convertPointFromScreen(mousePos, client.getCanvas());
+                    } catch (Exception e) {
+                        // Ignore conversion error if canvas/component not ready
+                    }
+
+                    final Point startPos = mousePos;
+
+                    // Execute on separate thread to not block EDT/switching
+                    new Thread(() -> {
+                        humanizedQueue.setCurrentPosition(startPos.x, startPos.y);
+                        humanizedQueue.executeAll(availableMs, returnMouse, startPos.x, startPos.y);
+                    }).start();
+                }
             } catch (Exception ex) {
                 Logger.norm("[Gear Swapper] Error executing commands: " + ex.getMessage());
             } finally {
@@ -1660,28 +1683,6 @@ public class GearSwapperPlugin extends Plugin {
             executeCommandWithDelay(scriptTask);
         } else {
             Static.invoke(scriptTask);
-        }
-
-        // Execute humanized queue if enabled and has actions
-        if (config.enableHumanizedMouse() && humanizedQueue != null && humanizedQueue.size() > 0) {
-            int availableMs = tickPredictor.getAvailableMs(config.humanizedMaxTimeMs());
-            Point mousePos = MouseInfo.getPointerInfo().getLocation();
-            boolean returnMouse = config.humanizedReturnMouse();
-
-            // Convert screen coordinates to canvas coordinates
-            try {
-                SwingUtilities.convertPointFromScreen(mousePos, client.getCanvas());
-            } catch (Exception e) {
-                // Ignore conversion error if canvas/component not ready, use raw or 0,0
-            }
-
-            final Point startPos = mousePos;
-
-            // Execute on separate thread to not block EDT/switching
-            new Thread(() -> {
-                humanizedQueue.setCurrentPosition(startPos.x, startPos.y);
-                humanizedQueue.executeAll(availableMs, returnMouse, startPos.x, startPos.y);
-            }).start();
         }
     }
 
