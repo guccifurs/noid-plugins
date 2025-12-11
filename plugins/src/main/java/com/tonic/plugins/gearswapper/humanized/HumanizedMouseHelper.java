@@ -58,6 +58,25 @@ public class HumanizedMouseHelper {
         return new Point(x, y);
     }
 
+    public static Point getRandomPointInShape(Shape shape) {
+        if (shape == null)
+            return null;
+        Rectangle bounds = shape.getBounds();
+        if (bounds.width <= 0 || bounds.height <= 0)
+            return null;
+
+        // Rejection sampling - try 30 times to find a point inside
+        for (int i = 0; i < 30; i++) {
+            Point p = getRandomPointInBounds(bounds);
+            if (p != null && shape.contains(p)) {
+                return p;
+            }
+        }
+
+        // Fallback to center if sampling fails (unlikely for reasonable shapes)
+        return new Point(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+    }
+
     public static Rectangle getWidgetBounds(int interfaceId) {
         return Static.invoke(() -> {
             Widget widget = WidgetAPI.get(interfaceId);
@@ -83,8 +102,9 @@ public class HumanizedMouseHelper {
         try {
             Shape clickbox = actor.getConvexHull();
             if (clickbox != null) {
-                Rectangle bounds = clickbox.getBounds();
-                return getRandomPointInBounds(bounds);
+                if (clickbox != null) {
+                    return getRandomPointInShape(clickbox);
+                }
             }
         } catch (Exception e) {
             // Fallback
@@ -106,8 +126,9 @@ public class HumanizedMouseHelper {
 
                 Polygon poly = Perspective.getCanvasTilePoly(client, local);
                 if (poly != null) {
-                    Rectangle bounds = poly.getBounds();
-                    return getRandomPointInBounds(bounds);
+                    if (poly != null) {
+                        return getRandomPointInShape(poly);
+                    }
                 }
             } catch (Exception e) {
                 // Fallback
