@@ -78,8 +78,13 @@ public class HumanizedActionQueue {
             return;
 
         // Ensure only one execution thread runs at a time
-        if (!executing.compareAndSet(false, true))
+        if (!executing.compareAndSet(false, true)) {
+            Logger.norm(
+                    "[HumanizedQueue] [DEBUG] WE ARE BUSY IGNORING REQUEST (tasks should be picked up by active runner)");
             return;
+        }
+
+        Logger.norm("[HumanizedQueue] [DEBUG] Starting execution loop. Items in queue: " + pendingActions.size());
 
         try {
             // Keep processing until queue is empty (handles items added during execution)
@@ -93,6 +98,7 @@ public class HumanizedActionQueue {
                 }
 
                 if (actions != null) {
+                    Logger.norm("[HumanizedQueue] [DEBUG] Drained batch of " + actions.size() + " actions.");
                     int delayBetweenActions = actions.size() > 0 ? availableMs / actions.size() : 0;
                     TrajectoryGenerator generator = TrajectoryService.createGenerator();
 
@@ -112,6 +118,7 @@ public class HumanizedActionQueue {
                     // Perform return to mouse if requested
                     if (returnToMouse) {
                         try {
+                            Logger.norm("[HumanizedQueue] [DEBUG] Queue empty, returning mouse.");
                             // Fetch CURRENT mouse position to allow user to influence end position
                             Point mousePos = java.awt.MouseInfo.getPointerInfo().getLocation();
                             java.awt.Point canvasLoc = client.getCanvas().getLocationOnScreen();
@@ -131,8 +138,11 @@ public class HumanizedActionQueue {
                     // If items appeared during returnToMouse, we must continue!
                     synchronized (pendingActions) {
                         if (pendingActions.isEmpty()) {
+                            Logger.norm("[HumanizedQueue] [DEBUG] Execution finished, queue empty.");
                             executing.set(false);
                             return;
+                        } else {
+                            Logger.norm("[HumanizedQueue] [DEBUG] New items found after return, continuing loop.");
                         }
                     }
                 }
@@ -143,6 +153,7 @@ public class HumanizedActionQueue {
             Logger.error("[HumanizedQueue] Error: " + e.getMessage());
         } finally {
             executing.set(false);
+            Logger.norm("[HumanizedQueue] [DEBUG] Execution thread exiting.");
         }
     }
 
