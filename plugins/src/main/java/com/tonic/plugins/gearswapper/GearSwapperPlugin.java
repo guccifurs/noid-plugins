@@ -3076,7 +3076,10 @@ public class GearSwapperPlugin extends Plugin {
                             }, "Equip " + item.getName());
                         } else {
                             // Fallback if no bounds (e.g. hidden item? shouldn't happen for inventory)
+                            Logger.warn("[Gear Swapper] Item " + item.getName()
+                                    + " has no clickbox (Inventory closed?). using packet interaction.");
                             InventoryAPI.interact(item, actionToUse);
+                            Logger.norm("[Gear Swapper] Equipped (fallback): " + item.getName());
                         }
 
                         // For wildcards, we continue searching
