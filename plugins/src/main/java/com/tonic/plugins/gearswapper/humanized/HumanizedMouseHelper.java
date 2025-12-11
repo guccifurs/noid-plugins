@@ -51,10 +51,18 @@ public class HumanizedMouseHelper {
         if (bounds == null || bounds.width <= 0 || bounds.height <= 0)
             return null;
 
-        int marginX = Math.max(1, bounds.width / 10);
-        int marginY = Math.max(1, bounds.height / 10);
-        int x = bounds.x + marginX + random.nextInt(Math.max(1, bounds.width - 2 * marginX));
-        int y = bounds.y + marginY + random.nextInt(Math.max(1, bounds.height - 2 * marginY));
+        double sigma = 0.20; // Standard deviation relative to size (20%)
+
+        // Gaussian distribution centered at 0.5 (center of bounds)
+        double gX = 0.5 + (random.nextGaussian() * sigma);
+        double gY = 0.5 + (random.nextGaussian() * sigma);
+
+        // Clamping to [0.05, 0.95] to avoid extreme edges
+        gX = Math.max(0.05, Math.min(0.95, gX));
+        gY = Math.max(0.05, Math.min(0.95, gY));
+
+        int x = bounds.x + (int) (bounds.width * gX);
+        int y = bounds.y + (int) (bounds.height * gY);
         return new Point(x, y);
     }
 
